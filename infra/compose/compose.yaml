@@ -1,0 +1,191 @@
+# FraudWatch core stack (Kafka, Postgres, scoring, generator, result consumer, API, ops-agent).
+# The Apache Flink / Spark services live in compose.streaming.yaml. Run both together:
+#   docker compose --env-file .env -p fraudwatch -f infra/compose/compose.yaml -f infra/compose/compose.streaming.yaml up -d
+# (run from the repository root; --env-file is required because Compose otherwise looks for .env next to this file)
+# Build context for every image is the repository root. Configuration comes from the root .env
+# (copy .env.example); secrets are never baked into images.
+
+name: fraudwatch
+
+x-service-env: &service-env
+  KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+  KAFKA_TRANSACTIONS_TOPIC: ${KAFKA_TRANSACTIONS_TOPIC:-fraudwatch.transactions}
+  KAFKA_FLINK_RESULTS_TOPIC: ${KAFKA_FLINK_RESULTS_TOPIC:-fraudwatch.results.flink}
+  KAFKA_SPARK_RESULTS_TOPIC: ${KAFKA_SPARK_RESULTS_TOPIC:-fraudwatch.results.spark}
+  DATABASE_URL: postgresql://${POSTGRES_USER:-fraudwatch}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-fraudwatch}
+  INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?set INTERNAL_API_TOKEN in .env}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "3" }
+
+services:
+  kafka:
+    image: apache/kafka:4.1.2
+    hostname: kafka
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,HOST://:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,HOST:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_NUM_PARTITIONS: 1
+      KAFKA_LOG_RETENTION_HOURS: 24
+      KAFKA_LOG_RETENTION_BYTES: 2147483648
+      KAFKA_HEAP_OPTS: -Xms512m -Xmx1g
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID:-MkU3OEVBNTcwNTJENDM2Qg}
+    ports:
+      - "127.0.0.1:29092:29092"   # host access for local tests only
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
+    mem_limit: 1500m
+
+  kafka-init:
+    image: apache/kafka:4.1.2
+    restart: "no"
+    logging: *logging
+    depends_on:
+      kafka: { condition: service_healthy }
+    environment:
+      TXN_TOPIC: ${KAFKA_TRANSACTIONS_TOPIC:-fraudwatch.transactions}
+      FLINK_TOPIC: ${KAFKA_FLINK_RESULTS_TOPIC:-fraudwatch.results.flink}
+      SPARK_TOPIC: ${KAFKA_SPARK_RESULTS_TOPIC:-fraudwatch.results.spark}
+    entrypoint: ["/bin/bash", "-ec"]
+    command:
+      - |
+        T=/opt/kafka/bin/kafka-topics.sh
+        B=kafka:9092
+        mk() { $$T --bootstrap-server $$B --create --if-not-exists --topic "$$1" --partitions "$$2" --replication-factor 1 $${3:+--config $$3}; }
+        mk "$$TXN_TOPIC" 4 message.timestamp.type=LogAppendTime
+        mk "$$FLINK_TOPIC" 4
+        mk "$$SPARK_TOPIC" 4
+        mk fraudwatch.windows.flink 1
+        mk fraudwatch.windows.spark 1
+        mk fraudwatch.dlq 1
+        mk fraudwatch.metrics.spark 1
+        $$T --bootstrap-server $$B --describe --topic "$$TXN_TOPIC"
+        echo "topics ready"
+
+  postgres:
+    image: postgres:17.11-alpine
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fraudwatch}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-fraudwatch}
+    command: ["postgres", "-c", "shared_buffers=256MB", "-c", "max_connections=100", "-c", "synchronous_commit=on"]
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-15432}:5432"   # host access for local tests only
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    mem_limit: 768m
+
+  scoring:
+    image: ${IMAGE_PREFIX:-fraudwatch}/scoring:${IMAGE_TAG:-1.0.0}
+    build: { context: ../.., dockerfile: services/scoring/Dockerfile }
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      MODEL_ARTIFACT_PATH: ${MODEL_ARTIFACT_PATH:-/models/fw-ieee-stream-1.0.0}
+      SCORING_WORKERS: ${SCORING_WORKERS:-2}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8001/healthz >/dev/null"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 20s
+    mem_limit: 1g
+
+  generator:
+    image: ${IMAGE_PREFIX:-fraudwatch}/generator:${IMAGE_TAG:-1.0.0}
+    build: { context: ../.., dockerfile: services/generator/Dockerfile }
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      kafka-init: { condition: service_completed_successfully }
+      postgres: { condition: service_healthy }
+    environment:
+      <<: *service-env
+      DEMO_MAX_EVENTS_PER_SECOND: ${DEMO_MAX_EVENTS_PER_SECOND:-50}
+      EXPERIMENT_MAX_EVENTS_PER_SECOND: ${EXPERIMENT_MAX_EVENTS_PER_SECOND:-1000}
+      GENERATOR_MAX_TOTAL_EPS: ${GENERATOR_MAX_TOTAL_EPS:-1200}
+      GENERATOR_MAX_ACTIVE_RUNS: ${GENERATOR_MAX_ACTIVE_RUNS:-25}
+    mem_limit: 512m
+
+  result-consumer:
+    image: ${IMAGE_PREFIX:-fraudwatch}/result-consumer:${IMAGE_TAG:-1.0.0}
+    build: { context: ../.., dockerfile: services/result-consumer/Dockerfile }
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      kafka-init: { condition: service_completed_successfully }
+      postgres: { condition: service_healthy }
+    environment:
+      <<: *service-env
+    mem_limit: 512m
+
+  api:
+    image: ${IMAGE_PREFIX:-fraudwatch}/api:${IMAGE_TAG:-1.0.0}
+    build: { context: ../.., dockerfile: services/api/Dockerfile }
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      kafka-init: { condition: service_completed_successfully }
+      postgres: { condition: service_healthy }
+    environment:
+      <<: *service-env
+      SESSION_SIGNING_SECRET: ${SESSION_SIGNING_SECRET:?set SESSION_SIGNING_SECRET in .env}
+      OPERATOR_AUTH_SECRET: ${OPERATOR_AUTH_SECRET:?set OPERATOR_AUTH_SECRET in .env}
+      OPERATOR_PASSPHRASE_HASH: ${OPERATOR_PASSPHRASE_HASH:-}
+      CLIENT_HASH_SALT: ${CLIENT_HASH_SALT:?set CLIENT_HASH_SALT in .env}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:5174}
+      LIVE_APP_URL: ${LIVE_APP_URL:-http://localhost:5173}
+      LAB_APP_URL: ${LAB_APP_URL:-http://localhost:5174}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      DEMO_MAX_EVENTS_PER_SESSION: ${DEMO_MAX_EVENTS_PER_SESSION:-5000}
+      DEMO_MAX_EVENTS_PER_SECOND: ${DEMO_MAX_EVENTS_PER_SECOND:-50}
+      EXPERIMENT_MAX_EVENTS_PER_SECOND: ${EXPERIMENT_MAX_EVENTS_PER_SECOND:-1000}
+      MAX_CONCURRENT_BENCHMARKS: ${MAX_CONCURRENT_BENCHMARKS:-1}
+      GENERATOR_URL: http://generator:8002
+      SCORING_SERVICE_URL: ${SCORING_SERVICE_URL:-http://scoring:8001}
+      FLINK_REST_URL: ${FLINK_REST_URL:-http://flink-jobmanager:8081}
+      OPS_AGENT_URL: http://ops-agent:8003
+      MODEL_VERSION: ${MODEL_VERSION:-fw-ieee-stream-1.0.0}
+      SPARK_TRIGGER_INTERVAL: ${SPARK_TRIGGER_INTERVAL:-1 second}
+      AI_PROVIDER: ${AI_PROVIDER:-groq}
+      AI_FALLBACK_ENABLED: ${AI_FALLBACK_ENABLED:-true}
+      AI_MAX_OUTPUT_TOKENS: ${AI_MAX_OUTPUT_TOKENS:-600}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    ports:
+      - "${API_BIND:-127.0.0.1}:8000:8000"   # on the VM, Caddy terminates TLS in front of this
+    mem_limit: 512m
+
+volumes:
+  kafka-data:
+  postgres-data:

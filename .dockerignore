@@ -1,0 +1,21 @@
+# Never send secrets or bulky data into image build contexts
+.env
+.env.*
+!.env.example
+**/keys.txt
+*.pem
+**/*service-account*.json
+.git
+**/node_modules
+**/dist
+**/.venv
+**/__pycache__
+**/.pytest_cache
+ml/data
+ml/.venv
+streaming/flink/target
+tests/streaming/out
+tests/e2e/test-results
+**/playwright-report
+*.png
+reports/

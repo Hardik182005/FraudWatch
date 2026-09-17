@@ -1,0 +1,33 @@
+# Secrets & local config
+.env
+.env.*
+!.env.example
+**/keys.txt
+*.pem
+*service-account*.json
+# Data & artifacts (large / licensed)
+ml/data/raw/
+ml/data/*.csv
+ml/data/*.parquet
+ml/data/*.pq
+ml/data/*.zip
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+.pytest_cache/
+# Node
+node_modules/
+dist/
+# Streaming build outputs
+streaming/flink/target/
+checkpoints/
+# Logs
+*.log
+tests/streaming/out/
+# OS
+Thumbs.db
+.DS_Store
+ml/data/processed/
+ml/results/*.tmp

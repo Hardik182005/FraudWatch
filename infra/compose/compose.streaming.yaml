@@ -1,0 +1,140 @@
+# FraudWatch Apache stream processing: Flink session cluster + idempotent job submitter, and the
+# Spark Structured Streaming job (profile "spark"). Overlay on the core stack (run from the repo root):
+#
+#   docker compose --env-file .env -p fraudwatch -f infra/compose/compose.yaml -f infra/compose/compose.streaming.yaml up -d
+#   docker compose --env-file .env -p fraudwatch -f infra/compose/compose.yaml -f infra/compose/compose.streaming.yaml --profile spark up -d spark
+#
+# Requires from the core stack: kafka (kafka:9092), kafka-init (creates the contract topics, must
+# complete successfully) and scoring (GET /healthz healthcheck). Build context is the repo root.
+# Docs: docs/apache-streaming.md
+
+x-streaming-logging: &streaming-logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "3" }
+
+x-flink-properties: &flink-properties
+  FLINK_PROPERTIES: |
+    jobmanager.rpc.address: flink-jobmanager
+    rest.address: flink-jobmanager
+    rest.bind-address: 0.0.0.0
+    jobmanager.memory.process.size: 1024m
+    taskmanager.memory.process.size: 2048m
+    taskmanager.memory.managed.fraction: 0.1
+    taskmanager.numberOfTaskSlots: 2
+    parallelism.default: 2
+    state.backend.type: hashmap
+    execution.checkpointing.dir: file:///opt/flink/checkpoints
+    execution.checkpointing.savepoint-dir: file:///opt/flink/savepoints
+    state.checkpoints.dir: file:///opt/flink/checkpoints
+    state.savepoints.dir: file:///opt/flink/savepoints
+    web.cancel.enable: true
+    web.submit.enable: false
+
+services:
+  flink-jobmanager:
+    image: ${IMAGE_PREFIX:-fraudwatch}/flink:${IMAGE_TAG:-1.0.0}
+    build: { context: ../.., dockerfile: streaming/flink/Dockerfile }
+    hostname: flink-jobmanager
+    command: jobmanager
+    restart: unless-stopped
+    logging: *streaming-logging
+    environment:
+      <<: *flink-properties
+    ports:
+      - "127.0.0.1:${FLINK_UI_HOST_PORT:-8081}:8081"   # Flink Web UI / REST (localhost only)
+    volumes:
+      - flink-checkpoints:/opt/flink/checkpoints
+      - flink-savepoints:/opt/flink/savepoints
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8081/overview >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    mem_limit: 1200m
+
+  flink-taskmanager:
+    image: ${IMAGE_PREFIX:-fraudwatch}/flink:${IMAGE_TAG:-1.0.0}
+    command: taskmanager
+    restart: unless-stopped
+    logging: *streaming-logging
+    depends_on:
+      flink-jobmanager: { condition: service_healthy }
+    environment:
+      <<: *flink-properties
+    volumes:
+      - flink-checkpoints:/opt/flink/checkpoints
+      - flink-savepoints:/opt/flink/savepoints
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f org.apache.flink.runtime.taskexecutor.TaskManagerRunner >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    mem_limit: 2300m
+
+  flink-submitter:
+    image: ${IMAGE_PREFIX:-fraudwatch}/flink:${IMAGE_TAG:-1.0.0}
+    entrypoint: ["/opt/fraudwatch/submit.sh"]
+    restart: on-failure:5
+    logging: *streaming-logging
+    depends_on:
+      flink-jobmanager: { condition: service_healthy }
+      flink-taskmanager: { condition: service_started }
+      kafka-init: { condition: service_completed_successfully }
+      scoring: { condition: service_healthy }
+    environment:
+      FLINK_JOBMANAGER_URL: http://flink-jobmanager:8081
+      FLINK_PARALLELISM: ${FLINK_PARALLELISM:-2}
+      FLINK_SUBMITTER_MODE: ${FLINK_SUBMITTER_MODE:-once}      # "watch" re-submits after a JobManager restart
+      FLINK_SUBMITTER_INTERVAL_S: ${FLINK_SUBMITTER_INTERVAL_S:-30}
+      FLINK_RESTORE_PATH: ${FLINK_RESTORE_PATH:-}                # explicit savepoint/checkpoint path (optional)
+      JVM_ARGS: -Xmx384m
+      # read by the job's main() (it runs in this client JVM) and baked into the job graph
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SCORING_SERVICE_URL: http://scoring:8001
+      FLINK_RUN_LABEL: ${FLINK_RUN_LABEL:-}
+      FLINK_GROUP_ID: ${FLINK_GROUP_ID:-fw-flink-v1}
+      FLINK_STATE_TTL_HOURS: ${FLINK_STATE_TTL_HOURS:-72}
+      TOPIC_TRANSACTIONS: ${KAFKA_TRANSACTIONS_TOPIC:-fraudwatch.transactions}
+      TOPIC_RESULTS_FLINK: ${KAFKA_FLINK_RESULTS_TOPIC:-fraudwatch.results.flink}
+      TOPIC_WINDOWS_FLINK: fraudwatch.windows.flink
+      TOPIC_DLQ: fraudwatch.dlq
+    volumes:
+      - flink-checkpoints:/opt/flink/checkpoints
+    mem_limit: 768m
+
+  spark:
+    image: ${IMAGE_PREFIX:-fraudwatch}/spark:${IMAGE_TAG:-1.0.0}
+    build: { context: ../.., dockerfile: streaming/spark/Dockerfile }
+    profiles: ["spark"]
+    hostname: spark
+    restart: unless-stopped
+    stop_grace_period: 40s
+    logging: *streaming-logging
+    depends_on:
+      kafka-init: { condition: service_completed_successfully }
+      scoring: { condition: service_healthy }
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SCORING_SERVICE_URL: http://scoring:8001
+      SPARK_RUN_LABEL: ${SPARK_RUN_LABEL:-default}
+      SPARK_CHECKPOINT_URI: ${SPARK_CHECKPOINT_URI:-}               # default /opt/spark-checkpoints/<label>
+      SPARK_STARTING_OFFSETS: ${SPARK_STARTING_OFFSETS:-latest}
+      SPARK_STARTING_TIMESTAMP_MS: ${SPARK_STARTING_TIMESTAMP_MS:-}
+      SPARK_FILTER_SESSION_IDS: ${SPARK_FILTER_SESSION_IDS:-}
+      SPARK_FILTER_RUN_IDS: ${SPARK_FILTER_RUN_IDS:-}
+      SPARK_TRIGGER_INTERVAL: ${SPARK_TRIGGER_INTERVAL:-1 second}
+      SPARK_DRIVER_MEMORY: ${SPARK_DRIVER_MEMORY:-1400m}
+      TOPIC_TRANSACTIONS: ${KAFKA_TRANSACTIONS_TOPIC:-fraudwatch.transactions}
+      TOPIC_RESULTS_SPARK: ${KAFKA_SPARK_RESULTS_TOPIC:-fraudwatch.results.spark}
+    ports:
+      - "127.0.0.1:${SPARK_UI_HOST_PORT:-4040}:4040"   # Spark UI (localhost only)
+    volumes:
+      - spark-checkpoints:/opt/spark-checkpoints
+    mem_limit: 2500m
+
+volumes:
+  flink-checkpoints:
+  flink-savepoints:
+  spark-checkpoints:

@@ -1,0 +1,55 @@
+{
+  "name": "fraudwatch",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FraudWatch frontend monorepo: FraudWatch Live, FraudWatch Lab, shared UI and API contracts",
+  "type": "module",
+  "workspaces": [
+    "packages/contracts",
+    "packages/ui",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev:live": "vite --config apps/live/vite.config.ts",
+    "dev:lab": "vite --config apps/lab/vite.config.ts",
+    "build": "npm run build:live && npm run build:lab",
+    "build:live": "vite build --config apps/live/vite.config.ts",
+    "build:lab": "vite build --config apps/lab/vite.config.ts",
+    "preview:live": "vite preview --config apps/live/vite.config.ts --port 4173 --strictPort",
+    "preview:lab": "vite preview --config apps/lab/vite.config.ts --port 4174 --strictPort",
+    "typecheck": "tsc -p packages/contracts/tsconfig.json && tsc -p packages/ui/tsconfig.json && tsc -p apps/live/tsconfig.json && tsc -p apps/lab/tsconfig.json && tsc -p tests/e2e/tsconfig.json",
+    "test": "vitest run --root packages/contracts && vitest run --root packages/ui",
+    "test:e2e": "playwright test -c tests/e2e/playwright.config.ts",
+    "test:e2e:install": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@fontsource-variable/inter": "5.3.0",
+    "@playwright/test": "1.63.0",
+    "@react-three/drei": "10.7.8",
+    "@react-three/fiber": "9.7.0",
+    "@types/node": "24.13.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/three": "0.186.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "lucide-react": "1.47.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-is": "19.3.0",
+    "react-router-dom": "7.18.4",
+    "recharts": "3.10.1",
+    "three": "0.186.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.0",
+    "vitest": "5.0.1"
+  },
+  "overrides": {
+    "@react-three/fiber": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    }
+  }
+}
