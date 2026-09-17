@@ -1,12 +1,12 @@
 /**
  * TypeScript mirror of docs/contracts.md section 6 (Public HTTP API, base path /api/v1).
- * All times are integer epoch milliseconds (UTC). Amounts are INR.
+ * All times are integer epoch milliseconds (UTC). Amounts are IEEE-CIS TransactionAmt in an unspecified source unit (no currency).
  * Fields the contract leaves open are typed loosely (Record<string, unknown>) on purpose.
  */
 
 export type Engine = 'flink' | 'spark';
 export type Action = 'alert' | 'review' | 'allow' | 'unscored';
-export type Pattern = 'burst' | 'profile_deviation' | 'card_testing' | 'late_burst';
+export type Pattern = 'selected_fraud_example' | 'late_delivery' | 'duplicate_delivery' | 'pseudo_account_burst';
 
 export interface ApiErrorBody {
   error: { code: string; message: string };
@@ -88,11 +88,20 @@ export interface Run {
   control_log: ControlLogEntry[];
   created_by: 'visitor' | 'operator' | 'experiment';
   error: string | null;
+  /** Section 7.2 additions (absent on older APIs). */
+  preset?: string | null;
+  options?: { duplicate_every?: number } | null;
+  lifecycle?: RunLifecycle | null;
+  counters?: RunCounters | null;
 }
 
 export interface CreateRunRequest {
-  scenario: string;
-  rate_eps: number;
+  /** Legacy scenario id; the API uses `preset` when supplied. */
+  scenario?: string;
+  /** Scenario library preset id (GET /scenarios). */
+  preset?: string;
+  /** Required unless `preset` supplies it. */
+  rate_eps?: number;
   max_events?: number;
   seed?: number;
   engines?: Engine[];
@@ -127,7 +136,7 @@ export interface WindowAgg {
   window_start: number;
   window_end: number;
   txn_count: number;
-  amount_sum_inr: number;
+  amount_sum: number | null;
   alert_count: number;
   review_count: number;
   unscored_count: number;
@@ -139,7 +148,8 @@ export interface Overview {
   as_of: number;
   engine: Engine;
   counts: { scored: number; alert: number; review: number; allow: number; unscored: number; late: number };
-  amount_flagged_inr: number;
+  /** Amount routed to alert/review (source unit). Not confirmed losses. */
+  amount_flagged: number | null;
   throughput_eps_1m: number | null;
   latency_ms: LatencySummary;
   last_persisted_at: number | null;
@@ -155,10 +165,14 @@ export interface TxnSummary {
   seq: number;
   account_id: string;
   event_time: number;
-  amount_inr: number;
-  merchant_name: string | null;
-  merchant_category: string | null;
-  city: string | null;
+  /** IEEE-CIS TransactionAmt, unit unspecified. */
+  amount: number | null;
+  /** "ieee-cis:<TransactionID>" */
+  source_ref?: string | null;
+  /** TransactionDT offset in seconds from an unspecified reference. */
+  source_dt_s?: number | null;
+  /** True for modified demo scenarios; excluded from evaluation. */
+  modified?: boolean | null;
   action: Action;
   score: number | null;
   late: boolean;
@@ -247,7 +261,10 @@ export interface TxnEvent {
   account_id: string;
   event_time: number;
   produced_at: number;
-  amount_inr: number;
+  amount: number | null;
+  source_ref?: string | null;
+  source_dt_s?: number | null;
+  modified?: boolean | null;
   product_cd: string;
   card_network: string;
   card_type: string;
@@ -255,10 +272,6 @@ export interface TxnEvent {
   device_type: string;
   has_identity: boolean;
   target_engines: Engine[];
-  merchant_id?: string;
-  merchant_name?: string;
-  merchant_category?: string;
-  city?: string;
   scenario?: string;
   pattern?: string | null;
   injected?: boolean;
@@ -282,8 +295,14 @@ export interface Alert {
   session_id: string;
   run_id: string;
   account_id: string;
-  amount_inr: number;
-  merchant_name: string | null;
+  /** IEEE-CIS TransactionAmt, unit unspecified. */
+  amount: number | null;
+  /** "ieee-cis:<TransactionID>" */
+  source_ref?: string | null;
+  /** TransactionDT offset in seconds from an unspecified reference. */
+  source_dt_s?: number | null;
+  /** True for modified demo scenarios; excluded from evaluation. */
+  modified?: boolean | null;
   action: 'alert' | 'review';
   score: number;
   rules_fired: string[];
@@ -406,7 +425,7 @@ export interface ModelResultsResponse {
 
 export interface WhatIfRequest {
   event: {
-    amount_inr: number;
+    amount: number | null;
     product_cd: string;
     card_network: string;
     card_type: string;
@@ -573,6 +592,218 @@ export interface AssistResponse {
   disclaimer: string;
 }
 
+/* ---------- Scenario library (GET /scenarios) ---------- */
+
+export interface ScenarioPreset {
+  id: string;
+  name: string;
+  description: string | null;
+  scenario?: string | null;
+  seed?: number | null;
+  max_events?: number | null;
+  rate_eps?: number | null;
+  engines?: Engine[] | null;
+  delivery?: { duplicate_every: number | null } | null;
+  /** Input conditions the generator creates (never a promised model output). */
+  expected?: string[] | null;
+  evidence?: string[] | null;
+  features?: { model: string[]; rules: string[]; rule_only_fields: string[] } | null;
+  bounds?: { max_events: number; max_rate_eps: number } | null;
+  caveats?: string[] | null;
+  /** False when the preset cannot be reproduced with the IEEE-CIS replay. */
+  supported?: boolean | null;
+  unsupported_reason?: string | null;
+  /** True when the preset changes replayed records ("Modified IEEE-CIS demo scenario"). */
+  modified?: boolean | null;
+}
+
+export type RunLifecycle = 'queued' | 'starting' | 'running' | 'paused' | 'draining' | 'completed' | 'failed' | 'cancelled';
+
+export interface RunEngineCounters {
+  processed: number | null;
+  persisted: number | null;
+  flagged: number | null;
+  failed: number | null;
+  late: number | null;
+  duplicate_deliveries: number | null;
+}
+
+export interface RunCounters {
+  generated: number | null;
+  attempts: number | null;
+  acked: number | null;
+  delivery_errors: number | null;
+  duplicates_sent: number | null;
+  engines: Partial<Record<Engine, RunEngineCounters>>;
+  not_instrumented: string[];
+}
+
+/* ---------- System Intelligence ---------- */
+
+export type LogSeverity = 'debug' | 'info' | 'warning' | 'error' | 'critical';
+
+export interface LogEntry {
+  id: string;
+  timestamp_utc: number;
+  observed_at?: number | null;
+  severity: LogSeverity | string;
+  service: string;
+  environment?: string | null;
+  session_id?: string | null;
+  run_id?: string | null;
+  event_id?: string | null;
+  trace_id?: string | null;
+  alert_id?: string | null;
+  experiment_id?: string | null;
+  engine?: string | null;
+  job_id?: string | null;
+  stage?: string | null;
+  status?: string | null;
+  duration_ms?: number | null;
+  message: string;
+  error_code?: string | null;
+  retry_attempt?: number | null;
+  payload?: Record<string, unknown> | null;
+}
+
+export interface LogQuery {
+  from?: number | null;
+  to?: number | null;
+  severity?: string | null;
+  service?: string | null;
+  engine?: string | null;
+  session_id?: string | null;
+  run_id?: string | null;
+  event_id?: string | null;
+  q?: string | null;
+  limit?: number;
+  cursor?: string | null;
+}
+
+export interface TraceSpan {
+  stage: string;
+  at_ms: number | null;
+  duration_ms: number | null;
+  status: 'ok' | 'failed' | 'missing' | 'not_applicable' | string;
+  detail: string | Record<string, unknown> | null;
+}
+
+export interface EngineTrace {
+  stages: TraceSpan[];
+  missing: string[];
+}
+
+export interface SystemTrace {
+  event_id: string;
+  session_id: string | null;
+  run_id: string | null;
+  seq?: number | null;
+  engines: Partial<Record<Engine, EngineTrace | null>>;
+  client_received?: { at_ms: number; source: string; note: string | null } | null;
+  logs: LogEntry[];
+}
+
+/** A measured count, or null when that quantity is not instrumented / restricted. */
+export type Measured = number | null;
+
+export interface ReconciliationRow {
+  run_id: string;
+  engine: string;
+  generated: Measured;
+  acked: Measured;
+  persisted: Measured;
+  missing: Measured;
+  duplicates: Measured;
+  state: 'running' | 'draining' | 'reconciled' | 'incomplete' | string;
+}
+
+export interface DlqRecord {
+  id: string;
+  engine: string | null;
+  error: string | null;
+  reason: string;
+  received_at: number | null;
+  persisted_at: number | null;
+  kafka: Record<string, unknown> | null;
+  raw_excerpt: string | null;
+}
+
+export interface DataQuality {
+  scope: { run_id: string | null; session_id: string | null; from: number | null; to: number | null };
+  counts: Record<string, Measured>;
+  definitions?: Record<string, string>;
+  reconciliation?: ReconciliationRow[];
+  dlq?: { items: DlqRecord[]; restricted: boolean } | null;
+}
+
+export type NotInstrumented = 'not_instrumented';
+
+export interface SystemOperations {
+  as_of: number;
+  model?: {
+    version: string | null;
+    checksum: string | null;
+    feature_schema: string | null;
+    features: string[];
+    thresholds: { alert: number; review: number } | null;
+    inference_errors: number | null;
+    inference_ms: { p50: number | null; p95: number | null; n: number; window_ms: number; boundary?: string } | null;
+  } | null;
+  flink?: {
+    job_id: string | null;
+    state: string | null;
+    checkpoint_age_ms: number | null;
+    last_checkpoint: unknown;
+    restarts: number | null;
+    watermarks: Array<{ vertex: string; current_input_watermark_ms: number | null }> | NotInstrumented;
+    backpressure: Array<{ vertex: string; level: string; ratio: number | null }> | NotInstrumented;
+  } | null;
+  spark?: {
+    state: string | null;
+    app_id: string | null;
+    run_label: string | null;
+    last_batch_id: number | null;
+    last_batch_at: number | null;
+    batch_duration_ms: number | null;
+    input_rows_per_second: number | null;
+    processed_rows_per_second: number | null;
+    trigger: string | null;
+  } | null;
+  kafka_lag?: Array<{ group: string; topic: string; partition: number; committed: number | null; end_offset: number | null; lag: number | null }> | NotInstrumented | null;
+  kafka_lag_notes?: string[];
+  incidents?: Array<{ id: string; severity: 'warning' | 'critical' | string; title: string; detail: string | null; since: number; source: string | null }>;
+}
+
+/* ---------- Lifecycle controller ---------- */
+
+export type LifecycleState = 'sleeping' | 'starting_vm' | 'starting_services' | 'restoring' | 'ready' | 'stopping' | 'failed';
+
+export interface LifecycleStatus {
+  state: LifecycleState | string;
+  stage: string | null;
+  operation_id: string | null;
+  updated_at: number | null;
+  error: string | null;
+  auto_wake_enabled?: boolean;
+  idle_timeout_minutes: number | null;
+  last_activity_at: number | null;
+  idle_deadline_at?: number | null;
+  ready_at?: number | null;
+  wake_started_at?: number | null;
+  last_wake_duration_ms?: number | null;
+  keep_awake_until?: number | null;
+  pending_wake?: boolean;
+  /** Compute Engine instance status as observed by the controller (e.g. RUNNING, TERMINATED). */
+  vm_status_observed?: string | null;
+  as_of?: number;
+}
+
+export interface LifecycleHistoryItem {
+  at: number;
+  event?: string;
+  [key: string]: unknown;
+}
+
 /* ---------- SSE ---------- */
 
 export interface StreamEventMap {
@@ -593,4 +824,9 @@ export const STREAM_EVENT_TYPES: StreamEventType[] = ['txn', 'alert', 'window', 
 export function normalizeOptions(list: Array<string | ScenarioOption> | undefined | null): ScenarioOption[] {
   if (!Array.isArray(list)) return [];
   return list.map((item) => (typeof item === 'string' ? { id: item, label: item.replace(/_/g, ' ') } : { ...item, label: item.label ?? item.id.replace(/_/g, ' ') }));
+}
+
+/** Transaction amount (IEEE-CIS TransactionAmt, unit unspecified). */
+export function pickAmount(o: { amount?: number | null } | null | undefined): number | null {
+  return o && typeof o.amount === 'number' && Number.isFinite(o.amount) ? o.amount : null;
 }

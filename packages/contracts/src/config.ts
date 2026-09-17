@@ -1,12 +1,14 @@
 /**
  * Runtime configuration. In containers `/config.js` (written at start from API_BASE_URL, LIVE_APP_URL,
- * LAB_APP_URL) sets window.__FRAUDWATCH_CONFIG__. In dev we fall back to VITE_API_BASE_URL.
+ * LAB_APP_URL, CONTROL_URL) sets window.__FRAUDWATCH_CONFIG__. In dev we fall back to VITE_API_BASE_URL.
  * No secrets ever live here.
  */
 export interface RuntimeConfig {
   apiBaseUrl: string;
   liveUrl: string | null;
   labUrl: string | null;
+  /** Lifecycle controller base URL (Cloud Run). Absent locally: the stack is treated as always on. */
+  controlUrl: string | null;
 }
 
 declare global {
@@ -27,12 +29,13 @@ function clean(value: unknown): string | null {
 
 export function resolveRuntimeConfig(
   injected: Partial<RuntimeConfig> | undefined,
-  env: { VITE_API_BASE_URL?: string; VITE_LIVE_APP_URL?: string; VITE_LAB_APP_URL?: string } = {},
+  env: { VITE_API_BASE_URL?: string; VITE_LIVE_APP_URL?: string; VITE_LAB_APP_URL?: string; VITE_CONTROL_URL?: string } = {},
 ): RuntimeConfig {
   return {
     apiBaseUrl: clean(injected?.apiBaseUrl) ?? clean(env.VITE_API_BASE_URL) ?? DEFAULT_API_BASE_URL,
     liveUrl: clean(injected?.liveUrl) ?? clean(env.VITE_LIVE_APP_URL),
     labUrl: clean(injected?.labUrl) ?? clean(env.VITE_LAB_APP_URL),
+    controlUrl: clean(injected?.controlUrl) ?? clean(env.VITE_CONTROL_URL),
   };
 }
 

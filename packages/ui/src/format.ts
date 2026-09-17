@@ -1,5 +1,3 @@
-const inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' });
-const inrCompact = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', notation: 'compact', maximumFractionDigits: 1 });
 const intFmt = new Intl.NumberFormat('en-IN');
 
 export const DASH = '—';
@@ -8,10 +6,16 @@ function isNum(v: unknown): v is number {
   return typeof v === 'number' && Number.isFinite(v);
 }
 
-/** INR using Indian digit grouping, e.g. ₹1,23,456.50 */
-export function formatINR(value: number | null | undefined, opts: { compact?: boolean } = {}): string {
-  if (!isNum(value)) return DASH;
-  return opts.compact ? inrCompact.format(value) : inr.format(value);
+const amountFmt = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const amountCompact = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
+
+/**
+ * IEEE-CIS TransactionAmt in its source unit. The dataset does not document a currency, so no symbol
+ * or conversion is applied.
+ */
+export function formatAmount(value: number | null | undefined, opts: { compact?: boolean } = {}): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return DASH;
+  return (opts.compact ? amountCompact : amountFmt).format(value);
 }
 
 export function formatInt(value: number | null | undefined): string {

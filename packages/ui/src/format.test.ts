@@ -1,19 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { DASH, formatINR, formatInt, formatMs, formatPct, formatRelativeTime, formatScore, formatValue, humanize, shortId } from './format';
+import { DASH, formatAmount, formatInt, formatMs, formatPct, formatRelativeTime, formatScore, formatValue, humanize, shortId } from './format';
 import { nextPreference, readPreference, resolveTheme, writePreference, applyTheme, THEME_STORAGE_KEY, type StorageLike } from './theme';
 
-describe('formatINR', () => {
-  it('uses Indian grouping and the rupee symbol', () => {
-    expect(formatINR(123456.5)).toBe('₹1,23,456.50');
-    expect(formatINR(0)).toBe('₹0.00');
-    expect(formatINR(10000000)).toBe('₹1,00,00,000.00');
+describe('formatAmount', () => {
+  it('uses plain grouping with no currency symbol', () => {
+    expect(formatAmount(123456.5)).toBe('123,456.50');
+    expect(formatAmount(0)).toBe('0.00');
+    expect(formatAmount(117)).not.toMatch(/[₹$€]/);
   });
   it('handles missing values', () => {
-    expect(formatINR(null)).toBe(DASH);
-    expect(formatINR(Number.NaN)).toBe(DASH);
-  });
-  it('supports compact notation', () => {
-    expect(formatINR(1250000, { compact: true })).toMatch(/₹12\.5\s?L/);
+    expect(formatAmount(null)).toBe(DASH);
+    expect(formatAmount(Number.NaN)).toBe(DASH);
   });
 });
 

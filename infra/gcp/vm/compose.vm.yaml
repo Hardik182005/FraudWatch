@@ -1,0 +1,17 @@
+# VM overrides: the API listens on the private VPC address (firewall limits tcp:8000 to Cloud Run egress),
+# client IPs come from the controller's X-Forwarded-For, every long-running service restarts on boot, and the
+# Flink submitter watches the JobManager so the job is re-submitted from the newest retained checkpoint.
+services:
+  api:
+    restart: unless-stopped
+    environment:
+      TRUST_PROXY: "true"
+  kafka: { restart: unless-stopped }
+  postgres: { restart: unless-stopped }
+  scoring: { restart: unless-stopped }
+  generator: { restart: unless-stopped }
+  result-consumer: { restart: unless-stopped }
+  flink-submitter:
+    restart: unless-stopped
+    environment:
+      FLINK_SUBMITTER_MODE: watch

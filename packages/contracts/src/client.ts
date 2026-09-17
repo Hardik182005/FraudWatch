@@ -31,6 +31,14 @@ import type {
   WhatIfRequest,
   WhatIfResponse,
   HealthComponent,
+  DataQuality,
+  LifecycleHistoryItem,
+  LifecycleStatus,
+  LogEntry,
+  LogQuery,
+  ScenarioPreset,
+  SystemOperations,
+  SystemTrace,
 } from './types';
 
 export type ApiErrorKind = 'http' | 'network' | 'timeout' | 'aborted' | 'parse';
@@ -41,14 +49,22 @@ export class ApiError extends Error {
   readonly status: number | null;
   readonly code: string;
   readonly retryAfterS: number | null;
+  /** Controller lifecycle snapshot attached to 503 pipeline_<state> responses. */
+  readonly lifecycle: Record<string, unknown> | null;
 
-  constructor(opts: { kind: ApiErrorKind; message: string; status?: number | null; code?: string; retryAfterS?: number | null }) {
+  constructor(opts: { kind: ApiErrorKind; message: string; status?: number | null; code?: string; retryAfterS?: number | null; lifecycle?: Record<string, unknown> | null }) {
     super(opts.message);
     this.name = 'ApiError';
     this.kind = opts.kind;
     this.status = opts.status ?? null;
     this.code = opts.code ?? opts.kind;
     this.retryAfterS = opts.retryAfterS ?? null;
+    this.lifecycle = opts.lifecycle ?? null;
+  }
+
+  /** The API proxy answered 503 because the cloud pipeline is asleep or waking (not a failure). */
+  get isPipelineWaking(): boolean {
+    return this.status === 503 && this.code.startsWith('pipeline_');
   }
 
   get isRateLimited(): boolean {
@@ -65,6 +81,7 @@ export class ApiError extends Error {
   }
   /** Worth retrying automatically for idempotent requests. */
   get isTransient(): boolean {
+    if (this.isPipelineWaking) return false;
     return this.kind === 'network' || this.kind === 'timeout' || this.status === 502 || this.status === 503 || this.status === 504;
   }
 }
@@ -74,6 +91,7 @@ export function describeError(err: unknown): string {
     if (err.kind === 'network') return 'The FraudWatch API could not be reached. Check your connection or the API status.';
     if (err.kind === 'timeout') return 'The FraudWatch API did not respond in time.';
     if (err.status === 429) return `Demo limit reached: ${err.message}`;
+    if (err.isPipelineWaking) return 'The processing pipeline is waking up. Data will appear when it is ready.';
     if (err.status === 503) return `A backend dependency is unavailable: ${err.message}`;
     return err.message;
   }
@@ -186,11 +204,13 @@ export class FraudWatchClient {
     if (!res.ok) {
       let code = `http_${res.status}`;
       let message = res.statusText || `HTTP ${res.status}`;
+      let lifecycle: Record<string, unknown> | null = null;
       try {
-        const parsed = JSON.parse(text) as { error?: { code?: string; message?: string }; detail?: unknown };
+        const parsed = JSON.parse(text) as { error?: { code?: string; message?: string; lifecycle?: Record<string, unknown> }; detail?: unknown };
         if (parsed?.error) {
           code = parsed.error.code ?? code;
           message = parsed.error.message ?? message;
+          lifecycle = parsed.error.lifecycle ?? null;
         } else if (typeof parsed?.detail === 'string') {
           message = parsed.detail;
         }
@@ -198,7 +218,7 @@ export class FraudWatchClient {
         /* non-JSON error body */
       }
       const ra = res.headers.get('Retry-After');
-      throw new ApiError({ kind: 'http', status: res.status, code, message, retryAfterS: ra && !Number.isNaN(Number(ra)) ? Number(ra) : null });
+      throw new ApiError({ kind: 'http', status: res.status, code, message, lifecycle, retryAfterS: ra && !Number.isNaN(Number(ra)) ? Number(ra) : null });
     }
     if (!text) return undefined as T;
     try {
@@ -268,7 +288,94 @@ export class FraudWatchClient {
   sparkStart = (body: { session_id?: string; run_id?: string; mode: 'live' | 'replay' }) => this.request<HealthComponent>('/ops/spark/start', { method: 'POST', body });
   sparkStop = () => this.request<HealthComponent>('/ops/spark/stop', { method: 'POST', body: {} });
 
+  /* ----- Scenario library & exports ----- */
+  listScenarios = async (signal?: AbortSignal): Promise<ScenarioPreset[]> => {
+    const r = await this.request<ScenarioPreset[] | { items?: ScenarioPreset[] }>('/scenarios', { signal });
+    return Array.isArray(r) ? r : (r?.items ?? []);
+  };
+  runExportPath = (runId: string, format: 'json' | 'csv') => `/runs/${encodeURIComponent(runId)}/export.${format}`;
+
+  /** Fetches a download with auth headers so credentials never appear in a link. */
+  fetchBlob = async (path: string, query?: RequestOptions['query']): Promise<Blob> => {
+    const fetchImpl = this.opts.fetchImpl ?? globalThis.fetch.bind(globalThis);
+    const headers: Record<string, string> = {};
+    const token = this.opts.getToken?.();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const op = this.opts.getOperatorToken?.();
+    if (op) headers['X-Operator-Token'] = op;
+    let res: Response;
+    try {
+      res = await fetchImpl(this.url(path, query), { headers });
+    } catch (e) {
+      throw new ApiError({ kind: 'network', message: e instanceof Error ? e.message : 'Network error' });
+    }
+    if (!res.ok) throw new ApiError({ kind: 'http', status: res.status, code: `http_${res.status}`, message: res.statusText || `HTTP ${res.status}` });
+    return res.blob();
+  };
+
+  /* ----- System Intelligence ----- */
+  systemLogs = (q: LogQuery, signal?: AbortSignal) => this.request<{ items: LogEntry[]; next_cursor: string | null }>('/system/logs', { query: { ...q }, signal });
+  systemLogsStreamUrl = (q: LogQuery, token?: string | null) => this.url('/system/logs/stream', { ...q, cursor: undefined, limit: undefined, token: token ?? undefined });
+  readonly systemLogsExportPath = '/system/logs/export.csv';
+  systemTrace = (eventId: string, signal?: AbortSignal) => this.request<SystemTrace>(`/system/trace/${encodeURIComponent(eventId)}`, { signal });
+  dataQuality = (runId: string | null, signal?: AbortSignal) => this.request<DataQuality>('/system/data-quality', { query: { run_id: runId }, signal });
+  operations = (signal?: AbortSignal) => this.request<SystemOperations>('/system/operations', { signal });
+  clientReceipt = (event_id: string, received_at_ms: number) =>
+    this.request<unknown>('/system/client-receipt', { method: 'POST', body: { event_id, received_at_ms }, timeoutMs: 5000 });
+
   /* ----- Evidence & AI ----- */
   listEvidence = () => this.request<EvidenceItem[]>('/evidence');
   assist = (req: AssistRequest) => this.request<AssistResponse>('/assist', { method: 'POST', body: req, timeoutMs: 45000 });
+}
+
+/**
+ * Client for the lifecycle controller (a separate Cloud Run service). The browser never receives GCP
+ * credentials; the controller validates the demo session token itself.
+ */
+export class LifecycleClient {
+  private readonly base: string;
+  private readonly fetchImpl: typeof fetch;
+
+  constructor(baseUrl: string, fetchImpl?: typeof fetch) {
+    this.base = baseUrl.replace(/\/+$/, '');
+    this.fetchImpl = fetchImpl ?? globalThis.fetch.bind(globalThis);
+  }
+
+  private async call<T>(path: string, method: 'GET' | 'POST', body?: unknown, extra?: Record<string, string>): Promise<T> {
+    const headers: Record<string, string> = { Accept: 'application/json', ...(extra ?? {}) };
+    if (body !== undefined) headers['Content-Type'] = 'application/json';
+    let res: Response;
+    try {
+      res = await this.fetchImpl(`${this.base}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+    } catch (e) {
+      throw new ApiError({ kind: 'network', message: e instanceof Error ? e.message : 'Network error' });
+    }
+    const text = await res.text().catch(() => '');
+    if (!res.ok) {
+      let message = res.statusText || `HTTP ${res.status}`;
+      try {
+        const parsed = JSON.parse(text) as { error?: { message?: string }; detail?: unknown };
+        message = parsed?.error?.message ?? (typeof parsed?.detail === 'string' ? parsed.detail : message);
+      } catch {
+        /* non-JSON error body */
+      }
+      throw new ApiError({ kind: 'http', status: res.status, code: `http_${res.status}`, message });
+    }
+    if (!text) return undefined as T;
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      throw new ApiError({ kind: 'parse', status: res.status, message: 'The controller returned an unreadable response' });
+    }
+  }
+
+  /** Visitor wake/activity calls carry this header; the controller rejects them without it. */
+  private static readonly VISIT = { 'X-FraudWatch-Visit': '1' };
+
+  status = () => this.call<LifecycleStatus>('/lifecycle/status', 'GET');
+  history = (limit = 30) => this.call<{ items: LifecycleHistoryItem[] }>(`/lifecycle/history?limit=${limit}`, 'GET');
+  ensureReady = (session_id: string | null) => this.call<LifecycleStatus>('/lifecycle/ensure-ready', 'POST', { session_id }, LifecycleClient.VISIT);
+  activity = (session_id: string | null, kind: string) => this.call<unknown>('/lifecycle/activity', 'POST', { session_id, kind }, LifecycleClient.VISIT);
+  keepAwake = (minutes: number, operatorToken: string) =>
+    this.call<LifecycleStatus>('/lifecycle/keep-awake', 'POST', { minutes }, { 'X-Operator-Token': operatorToken });
 }

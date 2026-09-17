@@ -109,7 +109,7 @@ services:
     restart: unless-stopped
     logging: *logging
     environment:
-      MODEL_ARTIFACT_PATH: ${MODEL_ARTIFACT_PATH:-/models/fw-ieee-stream-1.0.0}
+      MODEL_ARTIFACT_PATH: ${MODEL_ARTIFACT_PATH:-/models/fw-ieee-stream-1.1.0}
       SCORING_WORKERS: ${SCORING_WORKERS:-2}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     healthcheck:
@@ -174,7 +174,7 @@ services:
       SCORING_SERVICE_URL: ${SCORING_SERVICE_URL:-http://scoring:8001}
       FLINK_REST_URL: ${FLINK_REST_URL:-http://flink-jobmanager:8081}
       OPS_AGENT_URL: http://ops-agent:8003
-      MODEL_VERSION: ${MODEL_VERSION:-fw-ieee-stream-1.0.0}
+      MODEL_VERSION: ${MODEL_VERSION:-fw-ieee-stream-1.1.0}
       SPARK_TRIGGER_INTERVAL: ${SPARK_TRIGGER_INTERVAL:-1 second}
       AI_PROVIDER: ${AI_PROVIDER:-groq}
       AI_FALLBACK_ENABLED: ${AI_FALLBACK_ENABLED:-true}
