@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 470" width="980" height="470" role="img" aria-label="CA1 · Confusion heatmaps, held-out test split" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<rect width="980" height="470" fill="#ffffff"/>
+<text x="24.00" y="34.00" font-size="17" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">CA1 · Confusion heatmaps, held-out test split</text>
+<text x="24.00" y="54.00" font-size="11.5" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">n = 88,581 · 3,083 fraud / 85,498 legitimate · thresholds fixed on validation, test scored once · cell shade = share of the whole split</text>
+<text x="40.00" y="74.00" font-size="12" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">LightGBM @ alert 0.104772</text>
+<text x="40.00" y="90.00" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">precision 0.151 · recall 0.367 · F1 0.214</text>
+<rect x="40.00" y="100.00" width="114.00" height="114.00" fill="#15803d" rx="4" opacity="0.932"/>
+<text x="97.00" y="148.00" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle" opacity="1.0">TN</text>
+<text x="97.00" y="170.00" font-size="15" fill="#ffffff" font-weight="600" text-anchor="middle" opacity="1.0">79,116</text>
+<text x="97.00" y="188.00" font-size="10" fill="#ffffff" font-weight="400" text-anchor="middle" opacity="1.0">89.31%</text>
+<rect x="158.00" y="100.00" width="114.00" height="114.00" fill="#b91c1c" rx="4" opacity="0.336"/>
+<text x="215.00" y="148.00" font-size="11" fill="#111827" font-weight="600" text-anchor="middle" opacity="1.0">FP</text>
+<text x="215.00" y="170.00" font-size="15" fill="#111827" font-weight="600" text-anchor="middle" opacity="1.0">6,382</text>
+<text x="215.00" y="188.00" font-size="10" fill="#111827" font-weight="400" text-anchor="middle" opacity="1.0">7.20%</text>
+<rect x="40.00" y="218.00" width="114.00" height="114.00" fill="#b91c1c" rx="4" opacity="0.231"/>
+<text x="97.00" y="266.00" font-size="11" fill="#111827" font-weight="600" text-anchor="middle" opacity="1.0">FN</text>
+<text x="97.00" y="288.00" font-size="15" fill="#111827" font-weight="600" text-anchor="middle" opacity="1.0">1,950</text>
+<text x="97.00" y="306.00" font-size="10" fill="#111827" font-weight="400" text-anchor="middle" opacity="1.0">2.20%</text>
+<rect x="158.00" y="218.00" width="114.00" height="114.00" fill="#15803d" rx="4" opacity="0.2"/>
+<text x="215.00" y="266.00" font-size="11" fill="#111827" font-weight="600" text-anchor="middle" opacity="1.0">TP</text>
+<text x="215.00" y="288.00" font-size="15" fill="#111827" font-weight="600" text-anchor="middle" opacity="1.0">1,133</text>
+<text x="215.00" y="306.00" font-size="10" fill="#111827" font-weight="400" text-anchor="middle" opacity="1.0">1.28%</text>
+<text x="34.00" y="159.00" font-size="10" fill="#6b7280" font-weight="400" text-anchor="end" opacity="1.0">actual</text>
+<text x="34.00" y="114.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="end" opacity="1.0">legit</text>
+<text x="34.00" y="232.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="end" opacity="1.0">fraud</text>
+<text x="97.00" y="344.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">predicted allow</text>
+<text x="215.00" y="344.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">predicted flag</text>
+<text x="355.00" y="74.00" font-size="12" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">LightGBM @ review 0.069547</text>
+<text x="355.00" y="90.00" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">precision 0.133 · recall 0.472 · F1 0.208</text>
+<rect x="355.00" y="100.00" width="114.00" height="114.00" fill="#15803d" rx="4" opacity="0.915"/>
+<text x="412.00" y="148.00" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle" opacity="1.0">TN</text>
+<text x="412.00" y="170.00" font-size="15" fill="#ffffff" font-weight="600" text-anchor="middle" opacity="1.0">76,026</text>
+<text x="412.00" y="188.00" font-size="10" fill="#ffffff" font-weight="400" text-anchor="middle" opacity="1.0">85.83%</text>
+<rect x="473.00" y="100.00" width="114.00" height="114.00" fill="#b91c1c" rx="4" opacity="0.388"/>
+<text x="530.00" y="148.00" font-size="11" fill="#111827" font-weight="600" text-anchor="middle" opacity="1.0">FP</text>
+<text x="530.00" y="170.00" font-size="15" fill="#111827" font-weight="600" text-anchor="middle" opacity="1.0">9,472</text>
+<text x="530.00" y="188.00" font-size="10" fill="#111827" font-weight="400" text-anchor="middle" opacity="1.0">10.69%</text>
+<rect x="355.00" y="218.00" width="114.00" height="114.00" fill="#b91c1c" rx="4" opacity="0.219"/>
+<text x="412.00" y="266.00" font-size="11" fill="#111827" font-weight="600" text-anchor="middle" opacity="1.0">FN</text>
+<text x="412.00" y="288.00" font-size="15" fill="#111827" font-weight="600" text-anchor="middle" opacity="1.0">1,628</text>
+<text x="412.00" y="306.00" font-size="10" fill="#111827" font-weight="400" text-anchor="middle" opacity="1.0">1.84%</text>
+<rect x="473.00" y="218.00" width="114.00" height="114.00" fill="#15803d" rx="4" opacity="0.213"/>
+<text x="530.00" y="266.00" font-size="11" fill="#111827" font-weight="600" text-anchor="middle" opacity="1.0">TP</text>
+<text x="530.00" y="288.00" font-size="15" fill="#111827" font-weight="600" text-anchor="middle" opacity="1.0">1,455</text>
+<text x="530.00" y="306.00" font-size="10" fill="#111827" font-weight="400" text-anchor="middle" opacity="1.0">1.64%</text>
+<text x="349.00" y="159.00" font-size="10" fill="#6b7280" font-weight="400" text-anchor="end" opacity="1.0">actual</text>
+<text x="349.00" y="114.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="end" opacity="1.0">legit</text>
+<text x="349.00" y="232.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="end" opacity="1.0">fraud</text>
+<text x="412.00" y="344.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">predicted allow</text>
+<text x="530.00" y="344.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">predicted flag</text>
+<text x="670.00" y="74.00" font-size="12" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">Logistic regression @ 0.792659</text>
+<text x="670.00" y="90.00" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">precision 0.142 · recall 0.252 · F1 0.182</text>
+<rect x="670.00" y="100.00" width="114.00" height="114.00" fill="#15803d" rx="4" opacity="0.941"/>
+<text x="727.00" y="148.00" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle" opacity="1.0">TN</text>
+<text x="727.00" y="170.00" font-size="15" fill="#ffffff" font-weight="600" text-anchor="middle" opacity="1.0">80,811</text>
+<text x="727.00" y="188.00" font-size="10" fill="#ffffff" font-weight="400" text-anchor="middle" opacity="1.0">91.23%</text>
+<rect x="788.00" y="100.00" width="114.00" height="114.00" fill="#b91c1c" rx="4" opacity="0.302"/>
+<text x="845.00" y="148.00" font-size="11" fill="#111827" font-weight="600" text-anchor="middle" opacity="1.0">FP</text>
+<text x="845.00" y="170.00" font-size="15" fill="#111827" font-weight="600" text-anchor="middle" opacity="1.0">4,687</text>
+<text x="845.00" y="188.00" font-size="10" fill="#111827" font-weight="400" text-anchor="middle" opacity="1.0">5.29%</text>
+<rect x="670.00" y="218.00" width="114.00" height="114.00" fill="#b91c1c" rx="4" opacity="0.242"/>
+<text x="727.00" y="266.00" font-size="11" fill="#111827" font-weight="600" text-anchor="middle" opacity="1.0">FN</text>
+<text x="727.00" y="288.00" font-size="15" fill="#111827" font-weight="600" text-anchor="middle" opacity="1.0">2,307</text>
+<text x="727.00" y="306.00" font-size="10" fill="#111827" font-weight="400" text-anchor="middle" opacity="1.0">2.60%</text>
+<rect x="788.00" y="218.00" width="114.00" height="114.00" fill="#15803d" rx="4" opacity="0.182"/>
+<text x="845.00" y="266.00" font-size="11" fill="#111827" font-weight="600" text-anchor="middle" opacity="1.0">TP</text>
+<text x="845.00" y="288.00" font-size="15" fill="#111827" font-weight="600" text-anchor="middle" opacity="1.0">776</text>
+<text x="845.00" y="306.00" font-size="10" fill="#111827" font-weight="400" text-anchor="middle" opacity="1.0">0.88%</text>
+<text x="664.00" y="159.00" font-size="10" fill="#6b7280" font-weight="400" text-anchor="end" opacity="1.0">actual</text>
+<text x="664.00" y="114.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="end" opacity="1.0">legit</text>
+<text x="664.00" y="232.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="end" opacity="1.0">fraud</text>
+<text x="727.00" y="344.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">predicted allow</text>
+<text x="845.00" y="344.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">predicted flag</text>
+<text x="40.00" y="408.00" font-size="10.5" fill="#111827" font-weight="400" text-anchor="start" opacity="1.0">The baseline's accuracy is higher than LightGBM's (0.921 vs 0.906) while catching far less fraud — accuracy is not a usable metric here.</text>
+<text x="40.00" y="426.00" font-size="10.5" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">At the alert threshold 1,950 fraudulent transactions are missed and 6,382 legitimate ones are flagged for review. &quot;Alert&quot; means priority review, never a block.</text>
+<text x="24.00" y="458.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">Source: ml/artifacts/fw-ieee-stream-1.1.0/evaluation.json → held_out_test confusion matrices, baseline_comparison</text>
+</svg>

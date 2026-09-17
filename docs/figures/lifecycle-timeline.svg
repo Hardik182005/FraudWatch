@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 400" width="960" height="400" role="img" aria-label="Cloud lifecycle timeline · wake on visit, stop after idle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<rect width="960" height="400" fill="#ffffff"/>
+<text x="24.00" y="34.00" font-size="17" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">Cloud lifecycle timeline · wake on visit, stop after idle</text>
+<text x="24.00" y="54.00" font-size="11.5" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">Durations are the configured defaults from .env.example / services/controller/app.py. This is a schematic of the configuration, NOT a measured trace.</text>
+<rect x="60.00" y="150.00" width="81.00" height="46.00" fill="#9ca3af" rx="4" opacity="0.9"/>
+<text x="100.50" y="178.00" font-size="10.5" fill="#ffffff" font-weight="600" text-anchor="middle" opacity="1.0">sleeping</text>
+<text x="100.50" y="216.00" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">VM TERMINATED</text>
+<text x="100.50" y="229.00" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">Cloud Run min-instances 0</text>
+<rect x="144.00" y="150.00" width="72.60" height="46.00" fill="#6366f1" rx="4" opacity="0.9"/>
+<text x="180.30" y="178.00" font-size="10.5" fill="#ffffff" font-weight="600" text-anchor="middle" opacity="1.0">starting_vm</text>
+<text x="180.30" y="216.00" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">instance start</text>
+<text x="180.30" y="229.00" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">deadline 600 s total</text>
+<rect x="219.60" y="150.00" width="131.40" height="46.00" fill="#8b5cf6" rx="4" opacity="0.9"/>
+<text x="285.30" y="178.00" font-size="10.5" fill="#ffffff" font-weight="600" text-anchor="middle" opacity="1.0">starting_services</text>
+<text x="285.30" y="216.00" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">Compose up</text>
+<text x="285.30" y="229.00" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">Postgres + Kafka healthy</text>
+<rect x="354.00" y="150.00" width="89.40" height="46.00" fill="#0ea5e9" rx="4" opacity="0.9"/>
+<text x="398.70" y="178.00" font-size="10.5" fill="#ffffff" font-weight="600" text-anchor="middle" opacity="1.0">restoring</text>
+<text x="398.70" y="216.00" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">Flink RUNNING, model</text>
+<text x="398.70" y="229.00" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">loaded, 5-event probe</text>
+<rect x="446.40" y="150.00" width="282.60" height="46.00" fill="#15803d" rx="4" opacity="0.9"/>
+<text x="587.70" y="178.00" font-size="10.5" fill="#ffffff" font-weight="600" text-anchor="middle" opacity="1.0">ready</text>
+<text x="587.70" y="216.00" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">serving · idle timer 45 min</text>
+<text x="587.70" y="229.00" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">min uptime 10 min</text>
+<rect x="732.00" y="150.00" width="81.00" height="46.00" fill="#d97706" rx="4" opacity="0.9"/>
+<text x="772.50" y="178.00" font-size="10.5" fill="#ffffff" font-weight="600" text-anchor="middle" opacity="1.0">stopping</text>
+<text x="772.50" y="216.00" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">drain ≤ 180 s</text>
+<text x="772.50" y="229.00" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">then stop instance</text>
+<rect x="816.00" y="150.00" width="81.00" height="46.00" fill="#9ca3af" rx="4" opacity="0.9"/>
+<text x="856.50" y="178.00" font-size="10.5" fill="#ffffff" font-weight="600" text-anchor="middle" opacity="1.0">sleeping</text>
+<text x="856.50" y="216.00" font-size="9" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">back to TERMINATED</text>
+<line x1="144.00" y1="104.00" x2="144.00" y2="150.00" stroke="#1d4ed8" stroke-width="1.4" opacity="1.0"/>
+<circle cx="144.00" cy="104.00" r="4" fill="#1d4ed8"/>
+<text x="144.00" y="96.00" font-size="9.5" fill="#1d4ed8" font-weight="600" text-anchor="middle" opacity="1.0">visit → POST /lifecycle/ensure-ready</text>
+<line x1="732.00" y1="104.00" x2="732.00" y2="150.00" stroke="#b91c1c" stroke-width="1.4" opacity="1.0"/>
+<circle cx="732.00" cy="104.00" r="4" fill="#b91c1c"/>
+<text x="732.00" y="96.00" font-size="9.5" fill="#b91c1c" font-weight="600" text-anchor="middle" opacity="1.0">45 min with no activity</text>
+<line x1="816.00" y1="104.00" x2="816.00" y2="150.00" stroke="#b91c1c" stroke-width="1.4" opacity="1.0"/>
+<circle cx="816.00" cy="104.00" r="4" fill="#b91c1c"/>
+<text x="816.00" y="96.00" font-size="9.5" fill="#b91c1c" font-weight="600" text-anchor="middle" opacity="1.0">Cloud Tasks idle timer fires</text>
+<text x="60.00" y="268.00" font-size="10.5" fill="#111827" font-weight="400" text-anchor="start" opacity="1.0">Counts as activity: POST /lifecycle/ensure-ready, POST /lifecycle/activity, and proxied POST/PATCH API calls. Passive GET polling does not keep the VM awake.</text>
+<text x="60.00" y="288.00" font-size="10.5" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">Guards: 10 wakes / 10 min per hashed client IP · 24 wakes/day · 12 uptime hours/day · 60 s cooldown after a failed start · operator keep-awake ≤ 180 min.</text>
+<text x="60.00" y="308.00" font-size="10.5" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">A failure at any startup stage moves to `failed`; the next visit retries after the cooldown. On reboot the Flink submitter restores from the newest complete checkpoint.</text>
+<text x="60.00" y="334.00" font-size="10" fill="#b91c1c" font-weight="400" text-anchor="start" opacity="1.0">Segment widths are illustrative. No wake, ready or stop duration has been measured — see docs/status-checklist.md item 10.</text>
+<text x="24.00" y="388.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">Source: .env.example PIPELINE_* defaults · services/controller/app.py</text>
+</svg>

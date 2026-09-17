@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 500" width="700" height="500" role="img" aria-label="CA1 · ROC, held-out test split" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<rect width="700" height="500" fill="#ffffff"/>
+<text x="24.00" y="34.00" font-size="17" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">CA1 · ROC, held-out test split</text>
+<text x="24.00" y="54.00" font-size="11.5" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">LightGBM ROC-AUC 0.7817 · logistic-regression baseline 0.7603 · n = 88,581</text>
+<line x1="90.00" y1="420.00" x2="560.00" y2="420.00" stroke="#e5e7eb" stroke-width="1" opacity="1.0"/>
+<text x="82.00" y="423.50" font-size="10" fill="#6b7280" font-weight="400" text-anchor="end" opacity="1.0">0.0</text>
+<line x1="90.00" y1="353.20" x2="560.00" y2="353.20" stroke="#e5e7eb" stroke-width="1" opacity="1.0"/>
+<text x="82.00" y="356.70" font-size="10" fill="#6b7280" font-weight="400" text-anchor="end" opacity="1.0">0.2</text>
+<line x1="90.00" y1="286.40" x2="560.00" y2="286.40" stroke="#e5e7eb" stroke-width="1" opacity="1.0"/>
+<text x="82.00" y="289.90" font-size="10" fill="#6b7280" font-weight="400" text-anchor="end" opacity="1.0">0.4</text>
+<line x1="90.00" y1="219.60" x2="560.00" y2="219.60" stroke="#e5e7eb" stroke-width="1" opacity="1.0"/>
+<text x="82.00" y="223.10" font-size="10" fill="#6b7280" font-weight="400" text-anchor="end" opacity="1.0">0.6</text>
+<line x1="90.00" y1="152.80" x2="560.00" y2="152.80" stroke="#e5e7eb" stroke-width="1" opacity="1.0"/>
+<text x="82.00" y="156.30" font-size="10" fill="#6b7280" font-weight="400" text-anchor="end" opacity="1.0">0.8</text>
+<line x1="90.00" y1="86.00" x2="560.00" y2="86.00" stroke="#e5e7eb" stroke-width="1" opacity="1.0"/>
+<text x="82.00" y="89.50" font-size="10" fill="#6b7280" font-weight="400" text-anchor="end" opacity="1.0">1.0</text>
+<line x1="90.00" y1="86.00" x2="90.00" y2="420.00" stroke="#e5e7eb" stroke-width="1" opacity="1.0"/>
+<text x="90.00" y="436.00" font-size="10" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">0.0</text>
+<line x1="184.00" y1="86.00" x2="184.00" y2="420.00" stroke="#e5e7eb" stroke-width="1" opacity="1.0"/>
+<text x="184.00" y="436.00" font-size="10" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">0.2</text>
+<line x1="278.00" y1="86.00" x2="278.00" y2="420.00" stroke="#e5e7eb" stroke-width="1" opacity="1.0"/>
+<text x="278.00" y="436.00" font-size="10" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">0.4</text>
+<line x1="372.00" y1="86.00" x2="372.00" y2="420.00" stroke="#e5e7eb" stroke-width="1" opacity="1.0"/>
+<text x="372.00" y="436.00" font-size="10" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">0.6</text>
+<line x1="466.00" y1="86.00" x2="466.00" y2="420.00" stroke="#e5e7eb" stroke-width="1" opacity="1.0"/>
+<text x="466.00" y="436.00" font-size="10" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">0.8</text>
+<line x1="560.00" y1="86.00" x2="560.00" y2="420.00" stroke="#e5e7eb" stroke-width="1" opacity="1.0"/>
+<text x="560.00" y="436.00" font-size="10" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">1.0</text>
+<line x1="90.00" y1="86.00" x2="90.00" y2="420.00" stroke="#6b7280" stroke-width="1" opacity="1.0"/>
+<line x1="90.00" y1="420.00" x2="560.00" y2="420.00" stroke="#6b7280" stroke-width="1" opacity="1.0"/>
+<text x="325.00" y="454.00" font-size="11" fill="#111827" font-weight="400" text-anchor="middle" opacity="1.0">False positive rate</text>
+<text x="48" y="253.0" font-size="11" fill="#111827" text-anchor="middle" transform="rotate(-90 48 253.0)">True positive rate</text>
+<line x1="90.00" y1="420.00" x2="560.00" y2="86.00" stroke="#6b7280" stroke-width="1.2" stroke-dasharray="4 4" opacity="1.0"/>
+<text x="381.40" y="236.30" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">chance</text>
+<path d="M 90.00 420.00 L 90.27 413.82 L 90.71 409.38 L 91.82 405.81 L 92.75 403.75 L 93.50 400.83 L 94.27 397.03 L 95.15 394.22 L 95.93 387.83 L 97.02 381.32 L 98.91 378.29 L 100.44 375.04 L 102.30 370.60 L 103.39 367.57 L 104.71 364.42 L 105.71 362.04 L 106.65 356.30 L 107.59 353.37 L 108.41 348.93 L 109.38 345.46 L 110.68 342.11 L 111.67 339.07 L 112.79 334.96 L 113.88 330.73 L 114.73 327.26 L 116.07 324.12 L 117.19 322.39 L 118.45 318.70 L 119.60 314.37 L 120.86 307.66 L 122.46 304.30 L 123.64 300.40 L 125.01 297.91 L 126.42 293.90 L 127.77 288.80 L 129.61 284.80 L 131.61 281.33 L 132.85 277.21 L 134.40 273.31 L 135.77 271.69 L 137.15 270.06 L 138.55 268.33 L 139.94 265.29 L 141.56 262.80 L 142.95 260.96 L 144.64 259.34 L 145.84 257.28 L 147.07 255.00 L 148.45 252.19 L 150.24 250.67 L 152.26 249.26 L 154.24 247.53 L 155.74 245.47 L 157.65 242.11 L 159.39 239.62 L 161.05 237.02 L 162.81 235.51 L 164.89 232.26 L 166.68 228.14 L 168.09 224.35 L 169.53 223.15 L 170.91 221.64 L 172.70 220.23 L 174.32 218.39 L 176.15 217.08 L 178.05 214.81 L 179.57 213.08 L 182.38 211.13 L 184.16 209.29 L 186.13 207.88 L 187.98 205.93 L 190.85 203.87 L 192.75 202.68 L 194.64 201.81 L 196.82 200.51 L 198.84 199.75 L 200.97 198.45 L 203.91 196.93 L 206.89 194.99 L 209.78 193.04 L 212.15 192.17 L 214.67 190.44 L 217.33 188.48 L 219.82 186.97 L 221.35 185.13 L 223.22 183.39 L 225.43 182.20 L 227.93 180.25 L 231.02 178.74 L 232.54 176.78 L 234.81 175.16 L 237.20 173.86 L 239.22 172.67 L 241.84 171.37 L 244.16 170.07 L 247.13 168.33 L 250.37 166.82 L 252.68 164.98 L 255.47 164.00 L 257.30 162.70 L 259.58 161.08 L 262.20 159.45 L 265.02 158.48 L 267.31 157.50 L 270.58 155.77 L 273.84 154.68 L 276.67 153.71 L 279.23 151.98 L 281.69 150.89 L 284.10 149.05 L 288.08 147.64 L 290.90 146.34 L 294.43 145.37 L 298.35 143.20 L 301.11 142.34 L 304.37 141.25 L 306.96 140.27 L 309.57 139.52 L 311.90 138.76 L 314.89 137.35 L 317.89 136.05 L 320.86 135.29 L 323.28 133.67 L 325.39 132.04 L 328.41 131.07 L 331.17 129.88 L 334.65 128.47 L 337.96 127.49 L 340.27 126.62 L 342.98 125.54 L 346.03 124.24 L 349.46 123.48 L 352.84 122.19 L 356.95 121.21 L 360.12 120.02 L 362.89 119.26 L 365.51 118.17 L 369.08 117.42 L 372.52 116.66 L 377.05 115.68 L 380.48 115.03 L 383.79 114.28 L 388.20 113.19 L 391.56 112.54 L 394.34 111.46 L 397.34 110.70 L 400.83 109.94 L 403.92 109.18 L 406.23 108.10 L 409.89 107.45 L 413.33 106.91 L 416.86 105.83 L 420.44 104.96 L 423.85 104.09 L 427.15 103.22 L 430.39 102.79 L 433.71 101.93 L 436.46 100.95 L 439.00 100.30 L 441.62 99.65 L 445.80 99.22 L 448.25 98.78 L 451.65 98.24 L 454.28 97.48 L 456.56 97.05 L 458.60 96.62 L 462.00 95.53 L 465.47 95.32 L 468.38 94.99 L 472.04 94.23 L 476.07 93.80 L 478.95 93.47 L 481.32 93.37 L 484.20 92.72 L 487.38 92.28 L 490.78 92.18 L 494.79 91.74 L 497.46 91.63 L 500.52 91.20 L 502.86 90.88 L 505.21 90.33 L 508.23 90.23 L 511.94 90.23 L 514.69 89.57 L 517.42 89.36 L 520.05 88.93 L 523.38 88.71 L 526.24 88.60 L 528.67 88.49 L 531.66 88.38 L 534.26 88.06 L 538.06 87.73 L 540.81 87.52 L 544.71 87.41 L 547.01 86.98 L 549.54 86.76 L 551.67 86.65 L 553.66 86.54 L 557.66 86.11 L 560.00 86.00" fill="none" stroke="#1d4ed8" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="301.50" y="319.80" font-size="11.5" fill="#1d4ed8" font-weight="600" text-anchor="start" opacity="1.0">ROC-AUC 0.7817</text>
+<text x="24.00" y="462.00" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">ROC looks flattering on a 3.5%-positive problem. It is included for completeness; the PR curve is the honest view.</text>
+<text x="24.00" y="488.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">Source: ml/artifacts/fw-ieee-stream-1.1.0/evaluation.json → held_out_test.roc_curve</text>
+</svg>

@@ -12,11 +12,12 @@ Checked on 2026-09-18 from this machine:
 |---|---|
 | `GET https://fraudwatch-control-997216389793.asia-south1.run.app/health` | HTTP 200, `{"status":"ok"}` |
 | `GET …/lifecycle/status` | HTTP 200, real state document; at the time of checking `state: "failed"`, `stage: "starting_services"`, `error: "startup exceeded 600 s at stage 'waiting for the API container'"`, `vm_status_observed: null` |
-| `https://fraudwatch-live-997216389793.asia-south1.run.app/` | **HTTP 404** |
-| `https://fraudwatch-lab-997216389793.asia-south1.run.app/` | **HTTP 404** |
+| `https://fraudwatch-live-997216389793.asia-south1.run.app/` | **Deployed** — Cloud Run revision `fraudwatch-live-00002-grj`, 100% of traffic. Returned HTTP 404 on an earlier check the same day, before this revision. **Not yet opened in a browser.** |
+| `https://fraudwatch-lab-997216389793.asia-south1.run.app/` | **Deployed** — revision `fraudwatch-lab-00002-z5j`, 100% of traffic. **Not yet opened in a browser.** |
 
-**The controller is deployed and real. The two sites were not serving at that moment, and the last
-wake attempt had failed.** So: verify both site URLs and `GET /lifecycle/status` immediately before
+**The controller is deployed and real, and both sites now have a revision serving 100% of traffic —
+but neither has been opened in a browser yet, and a wake attempt that day had failed at
+`starting_services`.** So: open both site URLs and check `GET /lifecycle/status` immediately before
 presenting, and be ready to fall back to the local stack ([`local-setup.md`](local-setup.md)) — the demo
 is identical locally apart from the wake step. Never present the cloud URLs as live without re-checking.
 
@@ -167,9 +168,13 @@ Pull up [`model-card.md`](model-card.md), or `GET /api/v1/model`.
 > Structured Streaming, one LightGBM artifact behind both engines, PostgreSQL 17, a FastAPI layer, two
 > React 19 sites, and a wake-on-visit controller so the cloud deployment costs nothing while idle.
 >
-> What is not done: the experiment runner is unimplemented, so no benchmark has been measured; the
-> sites were returning 404 when I last checked the deployment; and the model misses about half the
-> fraud at its operating point. `docs/status-checklist.md` lists all of it.
+> What is measured: a Flink TaskManager kill, recovery from checkpoint `chk-80`, and 15 rows with 15
+> distinct event ids and zero duplicates afterwards.
+>
+> What is not done: the experiment runner is unimplemented, so no throughput, no latency percentiles
+> and no Flink-versus-Spark comparison have been measured; both sites are deployed but neither has been
+> verified in a browser; and the model misses about half the fraud at its operating point.
+> `docs/status-checklist.md` lists all of it.
 
 ## Questions you will be asked
 

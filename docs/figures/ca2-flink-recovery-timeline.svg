@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 470" width="980" height="470" role="img" aria-label="CA2 · Flink recovery after a TaskManager kill (measured)" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<rect width="980" height="470" fill="#ffffff"/>
+<text x="24.00" y="34.00" font-size="17" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">CA2 · Flink recovery after a TaskManager kill (measured)</text>
+<text x="24.00" y="54.00" font-size="11.5" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">VM fraudwatch-pipeline, asia-south1-a · job 20d1ba3421afcb29654a0025021b8451 &quot;fraudwatch-flink&quot; · 2026-09-18, times UTC</text>
+<rect x="80.00" y="190.00" width="820.00" height="44.00" fill="#e5e7eb" rx="4" opacity="0.6"/>
+<rect x="80.00" y="190.00" width="590.40" height="44.00" fill="#15803d" rx="4" opacity="0.85"/>
+<rect x="670.40" y="190.00" width="82.00" height="44.00" fill="#b91c1c" rx="4" opacity="0.85"/>
+<rect x="752.40" y="190.00" width="147.60" height="44.00" fill="#15803d" rx="4" opacity="0.85"/>
+<text x="375.20" y="217.00" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle" opacity="1.0">RUNNING</text>
+<text x="711.40" y="217.00" font-size="9" fill="#ffffff" font-weight="600" text-anchor="middle" opacity="1.0">RESTARTING</text>
+<text x="826.20" y="217.00" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle" opacity="1.0">RUNNING</text>
+<line x1="80.00" y1="234.00" x2="80.00" y2="242.00" stroke="#6b7280" stroke-width="1" opacity="1.0"/>
+<text x="80.00" y="256.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">18:55:00</text>
+<line x1="244.00" y1="234.00" x2="244.00" y2="242.00" stroke="#6b7280" stroke-width="1" opacity="1.0"/>
+<text x="244.00" y="256.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">18:55:20</text>
+<line x1="408.00" y1="234.00" x2="408.00" y2="242.00" stroke="#6b7280" stroke-width="1" opacity="1.0"/>
+<text x="408.00" y="256.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">18:55:40</text>
+<line x1="572.00" y1="234.00" x2="572.00" y2="242.00" stroke="#6b7280" stroke-width="1" opacity="1.0"/>
+<text x="572.00" y="256.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">18:56:00</text>
+<line x1="736.00" y1="234.00" x2="736.00" y2="242.00" stroke="#6b7280" stroke-width="1" opacity="1.0"/>
+<text x="736.00" y="256.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">18:56:20</text>
+<line x1="900.00" y1="234.00" x2="900.00" y2="242.00" stroke="#6b7280" stroke-width="1" opacity="1.0"/>
+<text x="900.00" y="256.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="middle" opacity="1.0">18:56:40</text>
+<line x1="178.40" y1="132.00" x2="178.40" y2="190.00" stroke="#b91c1c" stroke-width="1.4" opacity="1.0"/>
+<circle cx="178.40" cy="132.00" r="4" fill="#b91c1c"/>
+<text x="178.40" y="124.00" font-size="9.5" fill="#b91c1c" font-weight="600" text-anchor="start" opacity="1.0">18:55:12 · TaskManager process killed</text>
+<line x1="604.80" y1="234.00" x2="604.80" y2="286.00" stroke="#1d4ed8" stroke-width="1.4" opacity="1.0"/>
+<circle cx="604.80" cy="286.00" r="4" fill="#1d4ed8"/>
+<text x="604.80" y="302.00" font-size="9.5" fill="#1d4ed8" font-weight="600" text-anchor="middle" opacity="1.0">18:56:04 · TaskManager restarted</text>
+<line x1="670.40" y1="132.00" x2="670.40" y2="190.00" stroke="#b91c1c" stroke-width="1.4" opacity="1.0"/>
+<circle cx="670.40" cy="132.00" r="4" fill="#b91c1c"/>
+<text x="670.40" y="124.00" font-size="9.5" fill="#b91c1c" font-weight="600" text-anchor="middle" opacity="1.0">+60 s · heartbeat timeout → RESTARTING</text>
+<line x1="752.40" y1="234.00" x2="752.40" y2="286.00" stroke="#15803d" stroke-width="1.4" opacity="1.0"/>
+<circle cx="752.40" cy="286.00" r="4" fill="#15803d"/>
+<text x="752.40" y="302.00" font-size="9.5" fill="#15803d" font-weight="600" text-anchor="middle" opacity="1.0">~10 s later · RUNNING again, restored from chk-80</text>
+<rect x="80.00" y="336.00" width="278.00" height="46.00" fill="#f9fafb" stroke="#e5e7eb" rx="5" opacity="1.0"/>
+<text x="90.00" y="351.00" font-size="9" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">checkpoint mode</text>
+<text x="90.00" y="366.00" font-size="11" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">exactly_once</text>
+<text x="90.00" y="378.00" font-size="8.5" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">Flink REST /jobs/&lt;id&gt;/checkpoints/config</text>
+<rect x="373.00" y="336.00" width="278.00" height="46.00" fill="#f9fafb" stroke="#e5e7eb" rx="5" opacity="1.0"/>
+<text x="383.00" y="351.00" font-size="9" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">interval / timeout</text>
+<text x="383.00" y="366.00" font-size="11" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">10 000 / 60 000 ms</text>
+<text x="383.00" y="378.00" font-size="8.5" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">retained: delete_on_cancellation false</text>
+<rect x="666.00" y="336.00" width="278.00" height="46.00" fill="#f9fafb" stroke="#e5e7eb" rx="5" opacity="1.0"/>
+<text x="676.00" y="351.00" font-size="9" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">checkpoints before kill</text>
+<text x="676.00" y="366.00" font-size="11" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">77 total · 77 completed · 0 failed</text>
+<text x="676.00" y="378.00" font-size="8.5" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">0 failures in steady state</text>
+<rect x="80.00" y="390.00" width="278.00" height="46.00" fill="#f9fafb" stroke="#e5e7eb" rx="5" opacity="1.0"/>
+<text x="90.00" y="405.00" font-size="9" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">restores</text>
+<text x="90.00" y="420.00" font-size="11" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">counts.restored = 4</text>
+<text x="90.00" y="432.00" font-size="8.5" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">latest chk-80, is_savepoint false</text>
+<rect x="373.00" y="390.00" width="278.00" height="46.00" fill="#f9fafb" stroke="#e5e7eb" rx="5" opacity="1.0"/>
+<text x="383.00" y="405.00" font-size="9" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">failed during outage</text>
+<text x="383.00" y="420.00" font-size="11" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">6</text>
+<text x="383.00" y="432.00" font-size="8.5" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">expected: attempted while TM was down</text>
+<rect x="666.00" y="390.00" width="278.00" height="46.00" fill="#f9fafb" stroke="#e5e7eb" rx="5" opacity="1.0"/>
+<text x="676.00" y="405.00" font-size="9" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">persisted rows</text>
+<text x="676.00" y="420.00" font-size="11" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">flink: 15 rows / 15 distinct event_id</text>
+<text x="676.00" y="432.00" font-size="8.5" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">0 duplicate rows</text>
+<text x="80.00" y="100.00" font-size="10.5" fill="#111827" font-weight="400" text-anchor="start" opacity="1.0">What this verifies: exactly-once checkpointing, retained-checkpoint restore after a TaskManager failure, and no lost or duplicated persisted rows at this scale.</text>
+<text x="80.00" y="118.00" font-size="10.5" fill="#b91c1c" font-weight="400" text-anchor="start" opacity="1.0">What it is NOT: a throughput benchmark and not a Flink-vs-Spark comparison — those remain not measured yet.</text>
+<text x="24.00" y="458.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">Source: Flink REST API + PostgreSQL on the fraudwatch-pipeline VM, 2026-09-18 (session log)</text>
+</svg>

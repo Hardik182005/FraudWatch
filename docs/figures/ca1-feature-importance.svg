@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 570" width="780" height="570" role="img" aria-label="CA1 · Global feature importance (LightGBM total split gain)" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<rect width="780" height="570" fill="#ffffff"/>
+<text x="24.00" y="34.00" font-size="17" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">CA1 · Global feature importance (LightGBM total split gain)</text>
+<text x="24.00" y="54.00" font-size="11.5" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">15 features of feature spec fs-1.1 · all computable from the stream · labels are never features</text>
+<text x="220.00" y="107.00" font-size="11" fill="#111827" font-weight="400" text-anchor="end" opacity="1.0">log_amount</text>
+<rect x="230.00" y="96.00" width="470.00" height="15.00" fill="#1d4ed8" rx="2" opacity="0.88"/>
+<text x="708.00" y="107.50" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">89,937</text>
+<text x="220.00" y="133.00" font-size="11" fill="#111827" font-weight="400" text-anchor="end" opacity="1.0">product_cd</text>
+<rect x="230.00" y="122.00" width="466.96" height="15.00" fill="#1d4ed8" rx="2" opacity="0.88"/>
+<text x="704.96" y="133.50" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">89,355</text>
+<text x="220.00" y="159.00" font-size="11" fill="#111827" font-weight="400" text-anchor="end" opacity="1.0">device_type</text>
+<rect x="230.00" y="148.00" width="187.30" height="15.00" fill="#1d4ed8" rx="2" opacity="0.88"/>
+<text x="425.30" y="159.50" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">35,841</text>
+<text x="220.00" y="185.00" font-size="11" fill="#111827" font-weight="400" text-anchor="end" opacity="1.0">email_domain</text>
+<rect x="230.00" y="174.00" width="173.27" height="15.00" fill="#1d4ed8" rx="2" opacity="0.88"/>
+<text x="411.27" y="185.50" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">33,156</text>
+<text x="220.00" y="211.00" font-size="11" fill="#111827" font-weight="400" text-anchor="end" opacity="1.0">log_secs_since_last</text>
+<rect x="230.00" y="200.00" width="170.51" height="15.00" fill="#1d4ed8" rx="2" opacity="0.88"/>
+<text x="408.51" y="211.50" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">32,627</text>
+<text x="220.00" y="237.00" font-size="11" fill="#111827" font-weight="400" text-anchor="end" opacity="1.0">log_amount_ratio</text>
+<rect x="230.00" y="226.00" width="136.35" height="15.00" fill="#1d4ed8" rx="2" opacity="0.88"/>
+<text x="374.35" y="237.50" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">26,090</text>
+<text x="220.00" y="263.00" font-size="11" fill="#111827" font-weight="400" text-anchor="end" opacity="1.0">card_type</text>
+<rect x="230.00" y="252.00" width="130.41" height="15.00" fill="#1d4ed8" rx="2" opacity="0.88"/>
+<text x="368.41" y="263.50" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">24,955</text>
+<text x="220.00" y="289.00" font-size="11" fill="#111827" font-weight="400" text-anchor="end" opacity="1.0">log_prior_count_total</text>
+<rect x="230.00" y="278.00" width="97.81" height="15.00" fill="#1d4ed8" rx="2" opacity="0.88"/>
+<text x="335.81" y="289.50" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">18,717</text>
+<text x="220.00" y="315.00" font-size="11" fill="#111827" font-weight="400" text-anchor="end" opacity="1.0">has_identity</text>
+<rect x="230.00" y="304.00" width="59.62" height="15.00" fill="#1d4ed8" rx="2" opacity="0.88"/>
+<text x="297.62" y="315.50" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">11,409</text>
+<text x="220.00" y="341.00" font-size="11" fill="#111827" font-weight="400" text-anchor="end" opacity="1.0">log_prior_amount_sum_1h</text>
+<rect x="230.00" y="330.00" width="47.16" height="15.00" fill="#1d4ed8" rx="2" opacity="0.88"/>
+<text x="285.16" y="341.50" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">9,025</text>
+<text x="220.00" y="367.00" font-size="11" fill="#111827" font-weight="400" text-anchor="end" opacity="1.0">card_network</text>
+<rect x="230.00" y="356.00" width="32.05" height="15.00" fill="#1d4ed8" rx="2" opacity="0.88"/>
+<text x="270.05" y="367.50" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">6,134</text>
+<text x="220.00" y="393.00" font-size="11" fill="#111827" font-weight="400" text-anchor="end" opacity="1.0">prior_count_10m</text>
+<rect x="230.00" y="382.00" width="6.61" height="15.00" fill="#1d4ed8" rx="2" opacity="0.88"/>
+<text x="244.61" y="393.50" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">1,264</text>
+<text x="220.00" y="419.00" font-size="11" fill="#111827" font-weight="400" text-anchor="end" opacity="1.0">prior_count_1h</text>
+<rect x="230.00" y="408.00" width="5.88" height="15.00" fill="#1d4ed8" rx="2" opacity="0.88"/>
+<text x="243.88" y="419.50" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">1,125</text>
+<text x="220.00" y="445.00" font-size="11" fill="#111827" font-weight="400" text-anchor="end" opacity="1.0">prior_count_60s</text>
+<rect x="230.00" y="434.00" width="1.60" height="15.00" fill="#1d4ed8" rx="2" opacity="0.88"/>
+<text x="239.60" y="445.50" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">306</text>
+<text x="220.00" y="471.00" font-size="11" fill="#111827" font-weight="400" text-anchor="end" opacity="1.0">has_history</text>
+<rect x="230.00" y="460.00" width="0.00" height="15.00" fill="#1d4ed8" rx="2" opacity="0.88"/>
+<text x="238.00" y="471.50" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">0</text>
+<text x="24.00" y="502.00" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">Gain is a property of the fitted trees, not a causal statement. Per-event TreeSHAP contributions are computed live by the scoring service in log-odds units;</text>
+<text x="24.00" y="518.00" font-size="10" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">their global mean |contribution| is also recorded, sampled over 20,000 test rows with expected value -3.8645 log-odds.</text>
+<text x="24.00" y="558.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">Source: ml/artifacts/fw-ieee-stream-1.1.0/evaluation.json → global_importance.gain</text>
+</svg>
