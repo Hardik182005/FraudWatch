@@ -1,5 +1,5 @@
 import { useApi } from '@fraudwatch/contracts/react';
-import { Banner, Button, Card, ErrorState, PipelineDiagram, formatINR, shortId } from '@fraudwatch/ui';
+import { Banner, Button, Card, ErrorState, PipelineDiagram, formatAmount, shortId } from '@fraudwatch/ui';
 import { X } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
@@ -33,7 +33,7 @@ export function PipelinePage() {
           <span style={{ flex: 1 }}>
             {trace.data ? (
               <>
-                Highlighting the path of {formatINR(trace.data.event.amount_inr)} event <code>{shortId(traceId, 12)}</code>.{' '}
+                Highlighting the path of {formatAmount(trace.data.event.amount)} event <code>{shortId(traceId, 12)}</code>.{' '}
                 <Link to={`/tx/${encodeURIComponent(traceId)}`}>Open in inspector</Link>
               </>
             ) : trace.status === 'error' ? (

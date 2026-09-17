@@ -10,3 +10,6 @@ export * from './theme';
 export { PipelineDiagram, type PipelineDiagramProps, type ViewMode } from './pipeline/PipelineDiagram';
 export { PIPELINE_STAGES, SHORT_LABELS, buildNodeViews, traceStepNode, TRACE_STAGE_LABEL, type PipelineNodeView } from './pipeline/model';
 export * from './components/shell';
+export { LandingPage, LandingHeader, LandingHero, LandingSection, StepCard, TEAM_LINE } from './landing/Landing';
+export { SceneStage, type SceneStageProps } from './landing/SceneStage';
+export type { SceneNode } from './landing/types';

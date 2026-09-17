@@ -76,7 +76,7 @@ async def probe_start(request: Request):
     await fetch_one(
         """INSERT INTO runs (id, session_id, scenario, seed, rate_eps, initial_rate_eps, engines, status, max_events,
                              created_at, control_log, created_by, updated_at)
-           VALUES (%s, %s, 'normal', 42, 5, 5, %s, 'starting', 5, %s, %s, 'operator', %s) RETURNING id""",
+           VALUES (%s, %s, 'replay', 42, 5, 5, %s, 'starting', 5, %s, %s, 'operator', %s) RETURNING id""",
         (run_id, sid, ["flink"], now, Jsonb([]), now))
     await fetch_one("UPDATE demo_sessions SET active_run_id = %s WHERE id = %s RETURNING id", (run_id, sid))
     resp = await core.internal("POST", f"{core.GENERATOR_URL}/runs/{run_id}/start")

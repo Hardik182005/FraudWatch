@@ -12,7 +12,7 @@ CONTROL=$(run_url fraudwatch-control)
 LIVE=$(run_url fraudwatch-live)
 LAB=$(run_url fraudwatch-lab)
 
-(cd "$ROOT" && npm run build -w apps/live && npm run build -w apps/lab)
+(cd "$ROOT" && npm run build)
 
 for app in live lab; do
   ctx="$(mktemp -d)"

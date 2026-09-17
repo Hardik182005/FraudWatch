@@ -5,6 +5,7 @@ import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { OpenInLab } from './components/OpenInLab';
 import { AlertsPage } from './pages/Alerts';
 import { InspectorPage } from './pages/Inspector';
+import { LiveLandingPage } from './pages/Landing';
 import { NotFound } from './pages/NotFound';
 import { OverviewPage } from './pages/Overview';
 import { PipelinePage } from './pages/Pipeline';
@@ -12,14 +13,14 @@ import { ScenarioPage } from './pages/Scenario';
 import { useSession } from './session';
 
 const NAV: Array<{ to: string; label: string; icon: ReactNode; end?: boolean }> = [
-  { to: '/', label: 'Overview', icon: <Activity size={16} aria-hidden="true" />, end: true },
+  { to: '/console', label: 'Overview', icon: <Activity size={16} aria-hidden="true" />, end: true },
   { to: '/alerts', label: 'Alerts', icon: <Bell size={16} aria-hidden="true" /> },
   { to: '/scenario', label: 'Scenario', icon: <SlidersHorizontal size={16} aria-hidden="true" /> },
   { to: '/pipeline', label: 'Pipeline', icon: <Network size={16} aria-hidden="true" /> },
 ];
 
 const TITLES: Record<string, string> = {
-  '/': 'Overview',
+  '/console': 'Overview',
   '/alerts': 'Alerts',
   '/scenario': 'Scenario controls',
   '/pipeline': 'Pipeline',
@@ -28,16 +29,23 @@ const TITLES: Record<string, string> = {
 export function App() {
   const { health, mode, exitView, view, startDemo, starting } = useSession();
   const location = useLocation();
+  const landing = location.pathname === '/';
 
   useEffect(() => {
+    if (landing) {
+      document.title = 'FraudWatch Live · Real-time fraud detection on a replayed stream';
+      return;
+    }
     const page = location.pathname.startsWith('/tx/') ? 'Transaction inspector' : TITLES[location.pathname] ?? 'Not found';
     document.title = `${page} · FraudWatch Live`;
-  }, [location.pathname]);
+  }, [location.pathname, landing]);
+
+  if (landing) return <LiveLandingPage />;
 
   return (
     <AppShell
       brand={
-        <Link to="/" className="fw-brand" aria-label="FraudWatch Live home">
+        <Link to="/console" className="fw-brand" aria-label="FraudWatch Live console home">
           <BrandMark product="Live" />
         </Link>
       }
@@ -85,14 +93,14 @@ export function App() {
       footer={
         <>
           <span>
-            Educational project, not a banking integration. All accounts are synthetic, merchants are sample names, and no real payments are processed.
+            Educational project, not a banking integration. Transactions are replayed records from the IEEE-CIS Fraud Detection dataset (anonymized Vesta competition data), the account id is a pseudonymous key derived from card1, addr1 and P_emaildomain, and no real payments are processed.
           </span>
           <span>FraudWatch · Group 4</span>
         </>
       }
     >
       <Routes>
-        <Route path="/" element={<OverviewPage />} />
+        <Route path="/console" element={<OverviewPage />} />
         <Route path="/tx/:eventId" element={<InspectorPage />} />
         <Route path="/alerts" element={<AlertsPage />} />
         <Route path="/scenario" element={<ScenarioPage />} />

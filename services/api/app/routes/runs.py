@@ -9,7 +9,7 @@ from psycopg.types.json import Jsonb
 from pydantic import BaseModel, Field
 
 from fwcore.schema import SCENARIOS
-from fwcore.simulation import PATTERNS
+from fwcore.replay import PATTERNS
 
 from .. import core
 from ..access import own_run, read_run, read_session, session_row

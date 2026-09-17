@@ -17,7 +17,7 @@ import {
   TRACE_STAGE_LABEL,
   Tabs,
   TabPanel,
-  formatINR,
+  formatAmount,
   formatMs,
   formatNumber,
   formatScore,
@@ -83,7 +83,7 @@ export function InspectorPage() {
       <div className="fw-page-head">
         <div>
           <div className="fw-eyebrow">Transaction inspector</div>
-          <h1 style={{ overflowWrap: 'anywhere' }}>{formatINR(ev.amount_inr)} · {ev.merchant_name ?? 'Merchant not provided'}</h1>
+          <h1 style={{ overflowWrap: 'anywhere' }}>{formatAmount(ev.amount)} · {ev.product_cd}</h1>
           <p className="fw-small fw-muted">
             Event <code>{ev.event_id}</code> · account <code>{shortId(ev.account_id, 12)}</code> · event time {formatTimestamp(ev.event_time, true)}
           </p>
@@ -137,10 +137,8 @@ export function InspectorPage() {
           <Card title="Event">
             <KeyValue
               items={[
-                { key: 'Amount', value: formatINR(ev.amount_inr) },
-                { key: 'Merchant', value: ev.merchant_name ?? DASH },
-                { key: 'Category', value: ev.merchant_category ?? DASH },
-                { key: 'City', value: ev.city ?? DASH },
+                { key: 'Amount', value: formatAmount(ev.amount) },
+                { key: 'Source record', value: ev.source_ref ?? DASH },
                 { key: 'Product code', value: ev.product_cd },
                 { key: 'Card', value: `${ev.card_network} · ${ev.card_type}` },
                 { key: 'Email domain', value: ev.email_domain },
@@ -154,7 +152,7 @@ export function InspectorPage() {
               ]}
             />
             <p className="fw-small fw-muted" style={{ marginTop: 8 }}>
-              Synthetic account and sample merchant; not a real customer.
+              Account id is a pseudonymous key derived from the IEEE-CIS record (card1 + addr1 + email domain), not a real customer.
             </p>
           </Card>
 
@@ -172,7 +170,7 @@ export function InspectorPage() {
 function BackLink() {
   return (
     <div>
-      <Link to="/" className="fw-btn fw-btn-ghost fw-btn-sm">
+      <Link to="/console" className="fw-btn fw-btn-ghost fw-btn-sm">
         <ArrowLeft size={16} aria-hidden="true" /> Back to overview
       </Link>
     </div>
@@ -317,7 +315,7 @@ function sameNumber(a: unknown, b: unknown): boolean {
 
 /* ---------- What-if ---------- */
 
-const CATEGORICAL: Array<keyof Omit<WhatIfRequest['event'], 'amount_inr' | 'has_identity'>> = ['product_cd', 'card_network', 'card_type', 'email_domain', 'device_type'];
+const CATEGORICAL: Array<keyof Omit<WhatIfRequest['event'], 'amount' | 'has_identity'>> = ['product_cd', 'card_network', 'card_type', 'email_domain', 'device_type'];
 
 function WhatIfPanel({ event, detail }: { event: TransactionDetailResponse['event']; detail: TxnDetail | null }) {
   const model = useApi(() => api.getModel(), []);
@@ -325,7 +323,7 @@ function WhatIfPanel({ event, detail }: { event: TransactionDetailResponse['even
     if (!detail) return null;
     return {
       event: {
-        amount_inr: event.amount_inr,
+        amount: event.amount,
         product_cd: event.product_cd,
         card_network: event.card_network,
         card_type: event.card_type,
@@ -377,15 +375,15 @@ function WhatIfPanel({ event, detail }: { event: TransactionDetailResponse['even
           }}
         >
           <div className="fw-filters">
-            <Field label="Amount (INR)" htmlFor="wi-amount">
+            <Field label="Amount" htmlFor="wi-amount">
               <input
                 id="wi-amount"
                 className="fw-input"
                 type="number"
                 min={0}
                 step="any"
-                value={draft.event.amount_inr}
-                onChange={(e) => setDraft({ ...draft, event: { ...draft.event, amount_inr: Number(e.target.value) } })}
+                value={draft.event.amount ?? ''}
+                onChange={(e) => setDraft({ ...draft, event: { ...draft.event, amount: e.target.value === '' ? null : Number(e.target.value) } })}
               />
             </Field>
             {CATEGORICAL.map((key) => (

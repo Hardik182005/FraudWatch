@@ -12,7 +12,7 @@ import {
   StaleBanner,
   Stat,
   formatEps,
-  formatINR,
+  formatAmount,
   formatInt,
   formatMs,
   formatRelativeTime,
@@ -42,7 +42,7 @@ function Intro() {
           <div className="fw-eyebrow">Real-time fraud detection demo</div>
           <h1>FraudWatch Live</h1>
           <p>
-            Start a private demo session, run a synthetic transaction scenario through Kafka and Apache Flink, and watch each event get scored by the machine-learning model, checked by rules and
+            Start a private demo session, replay held-out IEEE-CIS transaction records through Kafka and Apache Flink, and watch each event get scored by the machine-learning model, checked by rules and
             routed to alert, review or allow — with the evidence for every decision.
           </p>
         </div>
@@ -68,7 +68,7 @@ function Intro() {
         ) : null}
       </Card>
       <Banner tone="neutral">
-        Educational demo only: not connected to any bank. Accounts are synthetic and merchant names are samples. Alerts are model outputs, not confirmed fraud.
+        Educational demo only: not connected to any bank. Transactions are replayed records from the IEEE-CIS Fraud Detection dataset and the account id is a pseudonymous key derived from card1, addr1 and P_emaildomain. Alerts are model outputs, not confirmed fraud.
       </Banner>
     </div>
   );
@@ -203,7 +203,7 @@ function OverviewBody({ o }: { o: Overview }) {
         <Stat label="Scored" value={formatInt(o.counts.scored)} note={`${formatInt(o.counts.allow)} allowed · ${formatInt(o.counts.unscored)} unscored`} />
         <Stat label="Alerts" value={<span style={{ color: 'var(--alert)' }}>{formatInt(o.counts.alert)}</span>} note={`${formatInt(o.counts.late)} late events`} />
         <Stat label="Reviews" value={<span style={{ color: 'var(--review)' }}>{formatInt(o.counts.review)}</span>} note="Queued for a human decision" />
-        <Stat label="Amount flagged" value={formatINR(o.amount_flagged_inr, { compact: o.amount_flagged_inr >= 1e7 })} note="Routed to alert or review. Not confirmed losses or money saved." />
+        <Stat label="Amount flagged" value={formatAmount(o.amount_flagged, { compact: (o.amount_flagged ?? 0) >= 1e7 })} note="Routed to alert or review. Not confirmed losses or money saved." />
       </div>
       <div className="fw-grid fw-grid-main-side">
         <Card title="Scored and flagged over time" description="From persisted results for this session.">
@@ -239,7 +239,7 @@ function OverviewBody({ o }: { o: Overview }) {
           columns={[
             { key: 'w', header: 'Window', render: (w) => <span className="fw-num">{`${formatTimestamp(w.window_start).slice(0, 8)}–${formatTimestamp(w.window_end).slice(0, 8)}`}</span> },
             { key: 'n', header: 'Transactions', align: 'right', render: (w) => formatInt(w.txn_count) },
-            { key: 'sum', header: 'Amount', align: 'right', render: (w) => formatINR(w.amount_sum_inr) },
+            { key: 'sum', header: 'Amount', align: 'right', render: (w) => formatAmount(w.amount_sum) },
             { key: 'a', header: 'Alerts', align: 'right', render: (w) => formatInt(w.alert_count) },
             { key: 'r', header: 'Reviews', align: 'right', render: (w) => formatInt(w.review_count) },
             { key: 'u', header: 'Unscored', align: 'right', render: (w) => formatInt(w.unscored_count) },

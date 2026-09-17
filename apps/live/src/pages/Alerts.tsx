@@ -14,7 +14,7 @@ import {
   KeyValue,
   LoadingSkeleton,
   StaleBanner,
-  formatINR,
+  formatAmount,
   formatInt,
   formatRelativeTime,
   formatScore,
@@ -131,7 +131,7 @@ export function AlertsPage() {
   if (mode === 'none') {
     return (
       <Card>
-        <EmptyState title="Start a demo to see alerts" icon={<Bell size={22} aria-hidden="true" />} action={<Link className="fw-btn fw-btn-primary" to="/">Go to Start demo</Link>}>
+        <EmptyState title="Start a demo to see alerts" icon={<Bell size={22} aria-hidden="true" />} action={<Link className="fw-btn fw-btn-primary" to="/console">Go to Start demo</Link>}>
           Alerts belong to a demo session. Start one from the overview.
         </EmptyState>
       </Card>
@@ -145,9 +145,9 @@ export function AlertsPage() {
     { key: 'created', header: 'Raised', render: (a) => <span className="fw-num">{formatTimestamp(a.created_at)}</span> },
     { key: 'action', header: 'Action', render: (a) => <ActionBadge action={a.action} /> },
     { key: 'status', header: 'Status', render: (a) => <AlertStatusPill status={a.status} /> },
-    { key: 'amount', header: 'Amount', align: 'right', render: (a) => <span className="fw-num">{formatINR(a.amount_inr)}</span> },
+    { key: 'amount', header: 'Amount', align: 'right', render: (a) => <span className="fw-num">{formatAmount(a.amount)}</span> },
     { key: 'score', header: 'Score', align: 'right', render: (a) => <span className="fw-num">{formatScore(a.score)}</span> },
-    { key: 'merchant', header: 'Merchant', render: (a) => a.merchant_name ?? <span className="fw-muted">Not provided</span> },
+    { key: 'source', header: 'Source record', render: (a) => a.source_ref ?? <span className="fw-muted">Not provided</span> },
     { key: 'engine', header: 'Engine', render: (a) => humanize(a.engine) },
     { key: 'rules', header: 'Rules fired', render: (a) => (a.rules_fired.length ? a.rules_fired.join(', ') : <span className="fw-muted">None</span>) },
   ];
@@ -226,7 +226,7 @@ export function AlertsPage() {
               rowKey={(a) => a.id}
               selectedKey={selectedId}
               onRowActivate={(a) => select(a.id)}
-              rowLabel={(a) => `${a.action} ${formatINR(a.amount_inr)}, score ${formatScore(a.score)}, status ${STATUS_LABEL[a.status] ?? a.status}. Open evidence.`}
+              rowLabel={(a) => `${a.action} ${formatAmount(a.amount)}, score ${formatScore(a.score)}, status ${STATUS_LABEL[a.status] ?? a.status}. Open evidence.`}
               empty={<EmptyState title="No alerts match">Alerts appear when the policy routes a transaction to alert or review. Try clearing filters or starting a scenario.</EmptyState>}
             />
             {(hasMore || moreError) && (
@@ -246,7 +246,7 @@ export function AlertsPage() {
       <Drawer
         open={!!selectedId}
         onClose={() => select(null)}
-        title={selected ? `${selected.action === 'alert' ? 'Alert' : 'Review'} · ${formatINR(selected.amount_inr)}` : 'Alert'}
+        title={selected ? `${selected.action === 'alert' ? 'Alert' : 'Review'} · ${formatAmount(selected.amount)}` : 'Alert'}
         description={selected ? `Event ${shortId(selected.event_id, 14)} · ${humanize(selected.engine)}` : undefined}
       >
         {selected ? (
@@ -292,7 +292,7 @@ function AlertDetail({ alert, readOnly, onUpdated }: { alert: Alert; readOnly: b
         items={[
           { key: 'Raised', value: `${formatTimestamp(alert.created_at, true)} (${formatRelativeTime(alert.created_at, now)})` },
           { key: 'Account', value: <code>{alert.account_id}</code> },
-          { key: 'Merchant', value: alert.merchant_name ?? 'Not provided' },
+          { key: 'Source record', value: alert.source_ref ?? 'Not provided' },
           { key: 'Last note', value: alert.decision_note ?? 'None' },
         ]}
       />
@@ -356,7 +356,7 @@ function DecisionForm({ alert, readOnly, onUpdated }: { alert: Alert; readOnly: 
               </Button>
             ))}
           </div>
-          <p className="fw-small fw-muted">“Confirm fraud (demo)” is a label for this synthetic session only. Decisions never retrain the model.</p>
+          <p className="fw-small fw-muted">“Confirm fraud (demo)” is a label for this demo session only. Decisions never retrain the model.</p>
           {error ? (
             <ErrorState
               error={error}

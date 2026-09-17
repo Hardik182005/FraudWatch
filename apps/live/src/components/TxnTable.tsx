@@ -1,5 +1,5 @@
 import type { TxnSummary } from '@fraudwatch/contracts';
-import { ActionBadge, DataTable, LateBadge, formatINR, formatMs, formatScore, formatTimestamp, shortId, type Column } from '@fraudwatch/ui';
+import { ActionBadge, DataTable, LateBadge, formatAmount, formatMs, formatScore, formatTimestamp, shortId, type Column } from '@fraudwatch/ui';
 import { useNavigate } from 'react-router-dom';
 
 export function TxnTable({ rows, caption, empty }: { rows: TxnSummary[]; caption: string; empty?: React.ReactNode }) {
@@ -7,8 +7,8 @@ export function TxnTable({ rows, caption, empty }: { rows: TxnSummary[]; caption
   const columns: Column<TxnSummary>[] = [
     { key: 'time', header: 'Event time', render: (r) => <span className="fw-num">{formatTimestamp(r.event_time)}</span> },
     { key: 'account', header: 'Account', render: (r) => <code className="fw-small">{shortId(r.account_id, 10)}</code> },
-    { key: 'merchant', header: 'Merchant', render: (r) => r.merchant_name ?? <span className="fw-muted">Not provided</span> },
-    { key: 'amount', header: 'Amount', align: 'right', render: (r) => <span className="fw-num">{formatINR(r.amount_inr)}</span> },
+    { key: 'source', header: 'Source record', render: (r) => r.source_ref ?? <span className="fw-muted">Not provided</span> },
+    { key: 'amount', header: 'Amount', align: 'right', render: (r) => <span className="fw-num">{formatAmount(r.amount)}</span> },
     { key: 'score', header: 'Score', align: 'right', render: (r) => <span className="fw-num">{formatScore(r.score)}</span> },
     {
       key: 'action',
@@ -31,7 +31,7 @@ export function TxnTable({ rows, caption, empty }: { rows: TxnSummary[]; caption
       compact
       empty={empty}
       onRowActivate={(r) => navigate(`/tx/${encodeURIComponent(r.event_id)}?engine=${r.engine}`)}
-      rowLabel={(r) => `${r.action} transaction of ${formatINR(r.amount_inr)} for account ${r.account_id}, score ${formatScore(r.score)}. Open inspector.`}
+      rowLabel={(r) => `${r.action} transaction of ${formatAmount(r.amount)} for account ${r.account_id}, score ${formatScore(r.score)}. Open inspector.`}
     />
   );
 }

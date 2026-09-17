@@ -98,7 +98,7 @@ export function ScenarioPage() {
   if (mode === 'none') {
     return (
       <Card>
-        <EmptyState title="Start a demo to control scenarios" icon={<SlidersHorizontal size={22} aria-hidden="true" />} action={<Link className="fw-btn fw-btn-primary" to="/">Go to Start demo</Link>}>
+        <EmptyState title="Start a demo to control scenarios" icon={<SlidersHorizontal size={22} aria-hidden="true" />} action={<Link className="fw-btn fw-btn-primary" to="/console">Go to Start demo</Link>}>
           Scenario controls act on your own demo session.
         </EmptyState>
       </Card>
@@ -123,7 +123,7 @@ export function ScenarioPage() {
         <div>
           <div className="fw-eyebrow">Scenario controls</div>
           <h1>Scenario</h1>
-          <p>Generate synthetic transactions for your session, inject known fraud patterns, and replay a run with the same seed.</p>
+          <p>Replay held-out IEEE-CIS records into your session, inject known delivery and fraud patterns, and replay a run with the same seed.</p>
         </div>
       </div>
 
@@ -286,7 +286,7 @@ export function ScenarioPage() {
       )}
 
       {!readOnly && (
-        <Card title="Inject a fraud pattern" description="Adds a short, labelled sequence of synthetic events into the running scenario.">
+        <Card title="Inject a fraud pattern" description="Schedules a short, labelled sequence of replayed records into the running scenario.">
           {!active || !current ? (
             <p className="fw-muted">Start or resume a run to inject patterns.</p>
           ) : patterns.length === 0 ? (

@@ -1,35 +1,38 @@
 import { AppShell, Banner, BrandMark, Button, HealthSummary, ThemeToggle } from '@fraudwatch/ui';
-import { BookOpen, FlaskConical, GraduationCap, Network, ShieldCheck, TestTube2 } from 'lucide-react';
+import { BookOpen, FlaskConical, Network, ShieldCheck, TestTube2 } from 'lucide-react';
 import { useEffect, type ReactNode } from 'react';
-import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useLab } from './lab';
-import { ArchitecturePage, Ca1Page, Ca2Page, EvidencePage, ExperimentsPage, HomePage, NotFoundPage, VivaPage } from './pages';
+import { LabLandingPage } from './landing';
+import { ArchitecturePage, Ca1Page, Ca2Page, EvidencePage, ExperimentsPage, HomePage, NotFoundPage } from './pages';
 import './lab.css';
 
 const NAV: Array<{ to: string; label: string; icon: ReactNode; end?: boolean }> = [
-  { to: '/', label: 'Study', icon: <BookOpen size={16} aria-hidden="true" />, end: true },
+  { to: '/study', label: 'Study', icon: <BookOpen size={16} aria-hidden="true" />, end: true },
   { to: '/ca1', label: 'CA1', icon: <ShieldCheck size={16} aria-hidden="true" /> },
   { to: '/ca2', label: 'CA2', icon: <TestTube2 size={16} aria-hidden="true" /> },
   { to: '/experiments', label: 'Experiments', icon: <FlaskConical size={16} aria-hidden="true" /> },
   { to: '/architecture', label: 'Architecture', icon: <Network size={16} aria-hidden="true" /> },
-  { to: '/viva', label: 'Viva', icon: <GraduationCap size={16} aria-hidden="true" /> },
 ];
 
 const TITLES: Record<string, string> = {
-  '/': 'Study lab', '/ca1': 'CA1', '/ca2': 'CA2', '/experiments': 'Experiment lab',
-  '/architecture': 'Architecture explorer', '/viva': 'Viva mode', '/evidence': 'Evidence',
+  '/study': 'Study lab', '/ca1': 'CA1', '/ca2': 'CA2', '/experiments': 'Experiment lab',
+  '/architecture': 'Architecture explorer', '/evidence': 'Evidence',
 };
 
 export function App() {
   const { health, view, clearView, liveLink } = useLab();
   const location = useLocation();
+  const landing = location.pathname === '/';
   useEffect(() => {
-    document.title = `${TITLES[location.pathname] ?? 'Not found'} · FraudWatch Lab`;
-  }, [location.pathname]);
+    document.title = landing ? 'FraudWatch Lab · Streaming fraud detection, studied' : `${TITLES[location.pathname] ?? 'Not found'} · FraudWatch Lab`;
+  }, [location.pathname, landing]);
+
+  if (landing) return <LabLandingPage />;
 
   return (
     <AppShell
-      brand={<Link to="/" className="fw-brand" aria-label="FraudWatch Lab home"><BrandMark product="Lab" /></Link>}
+      brand={<Link to="/study" className="fw-brand" aria-label="FraudWatch Lab study home"><BrandMark product="Lab" /></Link>}
       nav={NAV.map((n) => <NavLink key={n.to} to={n.to} end={n.end}>{n.icon}{n.label}</NavLink>)}
       actions={
         <>
@@ -51,12 +54,12 @@ export function App() {
       footer={<><span>Academic companion for FraudWatch · measured evidence is labelled separately from explanation.</span><Link to="/evidence">Evidence & status</Link></>}
     >
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/study" element={<HomePage />} />
         <Route path="/ca1" element={<Ca1Page />} />
         <Route path="/ca2" element={<Ca2Page />} />
         <Route path="/experiments" element={<ExperimentsPage />} />
         <Route path="/architecture" element={<ArchitecturePage />} />
-        <Route path="/viva" element={<VivaPage />} />
+        <Route path="/viva" element={<Navigate to="/" replace />} />
         <Route path="/evidence" element={<EvidencePage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
