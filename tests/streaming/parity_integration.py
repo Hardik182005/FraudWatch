@@ -148,11 +148,11 @@ def spark_main_progress(since_ms: int) -> list[dict]:
 
 # ------------------------------------------------------------------------------------------------
 def make_txn(run_id: str, seq: int, session: str, account: str, et: int, amount: float, targets: list[str]) -> dict:
-    ev = {"schema_version": "1.0", "kind": "txn", "event_id": make_event_id(run_id, seq), "demo_session_id": session,
+    ev = {"schema_version": "1.1", "kind": "txn", "event_id": make_event_id(run_id, seq), "demo_session_id": session,
           "run_id": run_id, "seq": seq, "account_id": account, "event_time": et, "produced_at": now_ms(),
-          "amount_inr": amount, "product_cd": "W", "card_network": "visa", "card_type": "debit",
+          "amount": amount, "product_cd": "W", "card_network": "visa", "card_type": "debit",
           "email_domain": "gmail.com", "device_type": "mobile", "has_identity": False, "target_engines": targets,
-          "scenario": "normal", "pattern": "normal", "injected": False}
+          "scenario": "replay", "pattern": "normal", "injected": False}
     return validate_event(ev)
 
 
@@ -162,7 +162,7 @@ def send_txn(p: Producer, ev: dict) -> None:
 
 
 def send_heartbeat(p: Producer, et: int) -> None:
-    hb = json.dumps({"schema_version": "1.0", "kind": "heartbeat", "event_time": et, "produced_at": now_ms(),
+    hb = json.dumps({"schema_version": "1.1", "kind": "heartbeat", "event_time": et, "produced_at": now_ms(),
                      "generator_id": "parity-test"}, separators=(",", ":")).encode()
     for part in range(PARTITIONS):
         p.produce(TOPICS["txn"], value=hb, partition=part)
@@ -365,10 +365,10 @@ def compare_windows(nonce: str, since_ms: int, expected: dict, by_engine: dict, 
                 continue
             ev = v["event"]
             k = (ev["demo_session_id"], ev["event_time"] // 60_000 * 60_000)
-            w = exp.setdefault(k, {"txn_count": 0, "amount_sum_inr": 0.0, "alert_count": 0, "review_count": 0, "unscored_count": 0})
+            w = exp.setdefault(k, {"txn_count": 0, "amount_sum": 0.0, "alert_count": 0, "review_count": 0, "unscored_count": 0})
             action = (v["scoring"]["response"] or {}).get("policy", {}).get("action")
             w["txn_count"] += 1
-            w["amount_sum_inr"] += float(ev["amount_inr"])
+            w["amount_sum"] += float(ev["amount"])
             w["alert_count"] += action == "alert"
             w["review_count"] += action == "review"
             w["unscored_count"] += action in (None, "unscored")
@@ -383,7 +383,7 @@ def compare_windows(nonce: str, since_ms: int, expected: dict, by_engine: dict, 
         for k, w in emitted.items():
             e = exp.get(k)
             ok = e is not None and all(w[f] == e[f] for f in ("txn_count", "alert_count", "review_count", "unscored_count")) \
-                and math.isclose(w["amount_sum_inr"], e["amount_sum_inr"], rel_tol=1e-9, abs_tol=1e-6)
+                and math.isclose(w["amount_sum"], e["amount_sum"], rel_tol=1e-9, abs_tol=1e-6)
             match += ok
             if not ok:
                 mism += 1

@@ -1,4 +1,4 @@
-"""Train and select the deployed FraudWatch stream model on IEEE-CIS (fs-1.0 features).
+"""Train and select the deployed FraudWatch stream model on IEEE-CIS (fs-1.1 features, amounts in source units).
 
 Candidates: logistic regression (class-weighted) and LightGBM (early-stopped on
 validation PR-AUC). Selection and thresholds use validation only; the test split is
@@ -27,15 +27,15 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from evaluation.metrics import full_report, threshold_max_f1, threshold_top_fraction  # noqa: E402
-from fwcore import FEATURE_SPEC_VERSION, POLICY_VERSION, REFERENCE_INR_PER_USD, RULESET_VERSION  # noqa: E402
+from evaluation.metrics import at_threshold, full_report, threshold_max_f1, threshold_top_fraction  # noqa: E402
+from fwcore import AMOUNT_UNIT, FEATURE_SPEC_VERSION, POLICY_VERSION, RULESET_VERSION  # noqa: E402
 from fwcore import features as F  # noqa: E402
 from fwcore import policy, rules  # noqa: E402
 from fwcore.schema import CARD_NETWORKS, CARD_TYPES, DEVICE_TYPES, EMAIL_DOMAINS, PRODUCT_CODES  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 SEED = 20260917
-MODEL_VERSION = "fw-ieee-stream-1.0.0"
+MODEL_VERSION = "fw-ieee-stream-1.1.0"
 REVIEW_CAPACITY = 0.10  # assumed analyst capacity: review band flags ~10% of validation traffic
 CATEGORIES = {
     "product_cd": list(PRODUCT_CODES),
@@ -122,9 +122,9 @@ def main() -> None:
     results["test_unseen_accounts"].pop("curves")
 
     # --- Policy evaluation (model + rules) on test ------------------------------
-    raw_cols = ["amount_inr", "prior_count_60s", "prior_count_10m", "prior_count_1h", "prior_amount_sum_1h",
+    raw_cols = ["amount", "prior_count_60s", "prior_count_10m", "prior_count_1h", "prior_amount_sum_1h",
                 "small_count_10m", "secs_since_last", "prior_count_total", "prior_mean_amount", "amount_ratio"]
-    raw_te = table.loc[te, ["amount_inr"] + [f"raw_{c}" for c in raw_cols[1:]]].copy()
+    raw_te = table.loc[te, ["amount"] + [f"raw_{c}" for c in raw_cols[1:]]].copy()
     raw_te.columns = raw_cols
     actions, fired_counts = [], {r["rule_id"]: 0 for r in rules.RULES}
     for (_, rr), sc in zip(raw_te.iterrows(), s_te):
@@ -160,20 +160,61 @@ def main() -> None:
              zip(F.MODEL_FEATURES, gbm.booster_.feature_importance(importance_type="gain"))],
             key=lambda d: -d["gain"])
 
-    # Generator profile: marginals from the TRAINING split only (used for synthetic demo accounts).
-    trt = table[tr]
-    combos = (trt.groupby(["product_cd", "card_network", "card_type", "email_domain", "device_type", "has_identity"])
-              .size().sort_values(ascending=False).head(40))
-    uid_median = trt.groupby("uid")["amount_inr"].median()
-    generator_profile = {
-        "source": "IEEE-CIS training split marginals",
-        "attribute_combos": [{"product_cd": k[0], "card_network": k[1], "card_type": k[2], "email_domain": k[3],
-                              "device_type": k[4], "has_identity": bool(k[5]), "weight": int(v)}
-                             for k, v in combos.items()],
-        "account_median_amount_inr_quantiles": {str(q): float(uid_median.quantile(q)) for q in
-                                                (0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95)},
+    # CA1 evaluation artifacts (aggregates only; no row-level data) ---------------------------------
+    splits = {"train": tr, "validation": va, "test": te}
+    class_balance = {k: {"rows": int(m.sum()), "fraud": int(y[m].sum()), "legit": int((y[m] == 0).sum()),
+                         "fraud_rate": float(y[m].mean())} for k, m in splits.items()}
+    sweep_thr = np.unique(np.concatenate([np.quantile(s_va, np.linspace(0.5, 0.999, 60)), [alert_thr, review_thr]]))
+    sweep = []
+    for thr in sweep_thr:
+        r = at_threshold(y[va], s_va, float(thr))
+        sweep.append({"threshold": r["threshold"], "precision": r["precision"], "recall": r["recall"], "f1": r["f1"],
+                      "flagged": int(round(r["flagged_rate"] * int(va.sum()))), "flagged_rate": r["flagged_rate"]})
+    shap_global = None
+    if selected == "lightgbm":
+        rng = np.random.default_rng(SEED)
+        te_idx = np.flatnonzero(te)
+        sample = np.sort(rng.choice(te_idx, size=min(20000, len(te_idx)), replace=False))
+        contrib = gbm.booster_.predict(x.iloc[sample], pred_contrib=True)  # TreeSHAP, log-odds; last column = bias
+        shap_global = {
+            "method": "mean |TreeSHAP contribution| (LightGBM pred_contrib=True, log-odds units) on a seeded random "
+                      f"sample of {len(sample)} held-out test rows",
+            "expected_value_log_odds": float(contrib[:, -1].mean()),
+            "features": sorted([{"feature": f, "mean_abs_shap": float(np.abs(contrib[:, i]).mean())}
+                                for i, f in enumerate(F.MODEL_FEATURES)], key=lambda d: -d["mean_abs_shap"]),
+        }
+    evaluation = {
+        "model_version": MODEL_VERSION,
+        "dataset": "IEEE-CIS Fraud Detection, provided by Vesta Corporation through the Kaggle competition ieee-fraud-detection",
+        "split_reference": "chronological 70/15/15 by TransactionDT (ties by TransactionID); see dataset.split in metadata.json",
+        "amount_unit": AMOUNT_UNIT,
+        "class_balance": class_balance,
+        "thresholds": {"alert": alert_thr, "review": review_thr, "selected_on": "validation"},
+        "held_out_test": {
+            "n": int(te.sum()),
+            "confusion_matrix_at_alert_threshold": test[selected]["at_threshold"]["confusion_matrix"],
+            "at_alert_threshold": {k: v for k, v in test[selected]["at_threshold"].items() if k != "confusion_matrix"},
+            "at_review_threshold": at_threshold(y[te], s_te, review_thr),
+            "pr_auc": test[selected]["pr_auc"], "roc_auc": test[selected]["roc_auc"],
+            "pr_curve": {"points": test[selected]["curves"]["pr"], "axes": ["recall", "precision"]},
+            "roc_curve": {"points": test[selected]["curves"]["roc"], "axes": ["fpr", "tpr"]},
+            "calibration": test[selected]["calibration"],
+        },
+        "validation_threshold_sweep": sweep,
+        "baseline_comparison": {
+            name: {"validation_pr_auc": results["candidates"][name]["validation_pr_auc"],
+                   "test_pr_auc": test[name]["pr_auc"], "test_roc_auc": test[name]["roc_auc"],
+                   "test_at_validation_threshold": test[name]["at_threshold"]}
+            for name in ("logistic_regression", "lightgbm")},
+        "global_importance": {
+            "gain": {"method": "LightGBM total split gain (feature_importance(importance_type='gain'))", "features": importance},
+            "shap": shap_global},
+        "per_prediction_explanations": "served live by the scoring service: LightGBM pred_contrib=True (TreeSHAP), "
+                                       "contributions in log-odds, bias term = expected value",
+        "test_unseen_accounts": results["test_unseen_accounts"],
+        "test_policy": pol,
     }
-    (art / "generator_profile.json").write_text(json.dumps(generator_profile, indent=2))
+    (art / "evaluation.json").write_text(json.dumps(evaluation, indent=2))
 
     prepare = json.loads((ROOT / "data" / "processed" / "prepare_manifest.json").read_text())
     metadata = {
@@ -186,7 +227,7 @@ def main() -> None:
                        "alert_method": "max F1 on validation", "review_method": f"min(alert, top {REVIEW_CAPACITY:.0%} of validation scores)"},
         "ruleset_version": RULESET_VERSION,
         "policy_version": POLICY_VERSION,
-        "reference_inr_per_usd": REFERENCE_INR_PER_USD,
+        "amount_unit": AMOUNT_UNIT,
         "seed": SEED,
         "dataset": prepare,
         "explanations": "LightGBM pred_contrib (TreeSHAP, log-odds)" if selected == "lightgbm" else "LR coefficient x standardised value (log-odds)",

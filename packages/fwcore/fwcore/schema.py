@@ -1,4 +1,4 @@
-"""Transaction event contract (schema 1.0) with dependency-free validation.
+"""Transaction event contract (schema 1.1: replayed IEEE-CIS records, amounts in source units) with dependency-free validation.
 
 Times are integer epoch milliseconds so that Java, Python and SQL agree exactly.
 """
@@ -18,9 +18,9 @@ CARD_TYPES = ("debit", "credit", "other", "unknown")
 EMAIL_DOMAINS = ("gmail.com", "yahoo.com", "hotmail.com", "anonymous.com", "aol.com", "other", "missing")
 DEVICE_TYPES = ("desktop", "mobile", "unknown")
 ENGINES = ("flink", "spark")
-SCENARIOS = ("normal", "burst", "profile_deviation", "card_testing", "late_events", "mixed")
+SCENARIOS = ("replay", "selected_examples", "late_events", "duplicates", "account_burst")
 
-MAX_AMOUNT_INR = 10_000_000.0
+MAX_AMOUNT = 1_000_000.0  # source units; IEEE-CIS TransactionAmt max is ~31,937
 
 
 class EventValidationError(ValueError):
@@ -46,7 +46,7 @@ _REQUIRED: dict[str, type | tuple[type, ...]] = {
     "account_id": str,
     "event_time": int,
     "produced_at": int,
-    "amount_inr": (int, float),
+    "amount": (int, float),
     "product_cd": str,
     "card_network": str,
     "card_type": str,
@@ -78,9 +78,9 @@ def validate_event(event: Any) -> dict[str, Any]:
         raise EventValidationError("unsupported schema_version")
     if event["kind"] != "txn":
         raise EventValidationError("kind must be txn or heartbeat")
-    amount = float(event["amount_inr"])
-    if not (0 < amount <= MAX_AMOUNT_INR):
-        raise EventValidationError("amount_inr out of range")
+    amount = float(event["amount"])
+    if not (0 < amount <= MAX_AMOUNT):
+        raise EventValidationError("amount out of range")
     if event["product_cd"] not in PRODUCT_CODES:
         raise EventValidationError("invalid product_cd")
     if event["card_network"] not in CARD_NETWORKS:
@@ -108,8 +108,8 @@ def decode_event(raw: bytes | str) -> dict[str, Any]:
 
 JSON_SCHEMA: dict[str, Any] = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://fraudwatch.example/schemas/transaction-event-1.0.json",
-    "title": "FraudWatch TransactionEvent 1.0",
+    "$id": "https://fraudwatch.example/schemas/transaction-event-1.1.json",
+    "title": "FraudWatch TransactionEvent 1.1",
     "type": "object",
     "required": list(_REQUIRED.keys()),
     "properties": {
@@ -119,23 +119,23 @@ JSON_SCHEMA: dict[str, Any] = {
         "demo_session_id": {"type": "string", "maxLength": 64},
         "run_id": {"type": "string"},
         "seq": {"type": "integer", "minimum": 0},
-        "account_id": {"type": "string", "maxLength": 64, "description": "synthetic pseudo-account"},
+        "account_id": {"type": "string", "maxLength": 64, "description": "pseudo-account uid:<card1>_<addr1>_<P_emaildomain> derived from the dataset (not a real account id)"},
         "event_time": {"type": "integer", "description": "epoch ms when the transaction occurred (event time)"},
         "produced_at": {"type": "integer", "description": "epoch ms immediately before the Kafka produce call (ingestion boundary)"},
-        "amount_inr": {"type": "number", "exclusiveMinimum": 0, "maximum": MAX_AMOUNT_INR},
+        "amount": {"type": "number", "exclusiveMinimum": 0, "maximum": MAX_AMOUNT,
+                   "description": "IEEE-CIS TransactionAmt as provided (unit unspecified in the files); no conversion"},
         "product_cd": {"enum": list(PRODUCT_CODES)},
         "card_network": {"enum": list(CARD_NETWORKS)},
         "card_type": {"enum": list(CARD_TYPES)},
         "email_domain": {"enum": list(EMAIL_DOMAINS)},
         "device_type": {"enum": list(DEVICE_TYPES)},
         "has_identity": {"type": "boolean"},
-        "merchant_id": {"type": "string", "description": "display-only synthetic enrichment, not a model feature"},
-        "merchant_name": {"type": "string"},
-        "merchant_category": {"type": "string"},
-        "city": {"type": "string"},
+        "source_ref": {"type": "string", "description": "stable source reference, ieee-cis:<TransactionID>"},
+        "source_dt_s": {"type": "integer", "description": "source TransactionDT (seconds from an unspecified reference time)"},
         "scenario": {"enum": list(SCENARIOS)},
-        "pattern": {"type": "string", "description": "generator pattern that produced this event (ground truth for the synthetic demo)"},
+        "pattern": {"type": ["string", "null"], "description": "delivery/selection tag: late_delivery | out_of_order | duplicate_delivery | selected_fraud_example | pseudo_account_burst"},
         "injected": {"type": "boolean"},
+        "modified": {"type": "boolean", "description": "true = Modified IEEE-CIS demo scenario (timing changes feature values); excluded from evaluation"},
         "arrival_delay_ms": {"type": "integer", "minimum": 0},
         "target_engines": {"type": "array", "items": {"enum": list(ENGINES)}, "minItems": 1},
     },

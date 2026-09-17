@@ -13,13 +13,20 @@ from fwsvc.db import connect
 log = logging.getLogger("generator.store")
 
 RUN_COLUMNS = ("id, session_id, scenario, seed, rate_eps, engines, status, max_events, events_sent, created_at, "
-               "started_at, ended_at, replay_of, control_log, created_by, experiment_id, error")
+               "started_at, ended_at, replay_of, control_log, created_by, experiment_id, error, preset, options, events_acked, "
+               "delivery_errors, duplicates_sent")
+
+LIFECYCLE = {"starting": "starting", "running": "running", "paused": "paused", "completed": "completed",
+             "stopped": "cancelled", "failed": "failed", "queued": "queued"}
 
 
 def run_row_to_api(r: dict) -> dict:
     return {k: r[k] for k in ("id", "session_id", "scenario", "seed", "rate_eps", "engines", "status", "max_events",
                               "events_sent", "started_at", "ended_at", "replay_of", "control_log", "created_by",
-                              "error")} | {"rate_eps": round(float(r["rate_eps"]), 3)}
+                              "error", "preset")} | {"rate_eps": round(float(r["rate_eps"]), 3),
+                                                     "options": r.get("options") or {},
+                                                     "lifecycle": LIFECYCLE.get(r["status"], r["status"]),
+                                                     "counters": None}
 
 
 class Store:
@@ -28,6 +35,7 @@ class Store:
         self.conn = connect(url, autocommit=True)
         self.lock = threading.Lock()
         self.reported: dict[str, int] = {}
+        self.logs = None  # fwsvc.logs.LogSink, set by main
 
     def _exec(self, fn):
         with self.lock:
@@ -62,6 +70,13 @@ class Store:
                           (run.status, run.start_epoch_ms, now_ms(), run.spec.run_id)).fetchone()
             self._publish(c, r)
         await self._run(q)
+        if self.logs:
+            sp = run.spec
+            self.logs.info(f"run started: {sp.scenario} seed={sp.seed} rate={sp.rate_eps:g}/s max={sp.max_events}",
+                           session_id=sp.session_id, run_id=sp.run_id, stage="generated", status="running",
+                           timestamp_utc=run.start_epoch_ms,
+                           payload={"scenario": sp.scenario, "seed": sp.seed, "rate_eps": sp.rate_eps,
+                                    "max_events": sp.max_events, "engines": sp.engines, "options": sp.options})
 
     async def progress(self, run, publish: bool = False) -> None:
         run_id = run.spec.run_id
@@ -72,9 +87,11 @@ class Store:
         def q(c):
             with c.transaction():
                 r = c.execute(
-                    f"""UPDATE runs SET events_sent = %s, status = %s, rate_eps = %s, control_log = %s, updated_at = %s
+                    f"""UPDATE runs SET events_sent = %s, status = %s, rate_eps = %s, control_log = %s, updated_at = %s,
+                               events_acked = %s, delivery_errors = %s, duplicates_sent = %s
                         WHERE id = %s RETURNING {RUN_COLUMNS}""",
-                    (sent, run.status, run.stream.rate_eps, Jsonb(run.stream.control_log), now_ms(), run_id)).fetchone()
+                    (sent, run.status, run.stream.rate_eps, Jsonb(run.stream.control_log), now_ms(), run.acked,
+                     run.delivery_errors, run.duplicates_sent, run_id)).fetchone()
                 if delta:
                     c.execute("UPDATE demo_sessions SET events_used = events_used + %s WHERE id = %s",
                               (delta, run.spec.session_id))
@@ -96,6 +113,17 @@ class Store:
                 self._publish(c, r)
         await self._run(q)
         self.reported.pop(run.spec.run_id, None)
+        if self.logs:
+            sp = run.spec
+            sev = "error" if run.status == "failed" else ("warning" if run.delivery_errors else "info")
+            self.logs.emit(sev, f"run {run.status}: {run.events_sent} generated, {run.acked} broker acks, "
+                                f"{run.duplicates_sent} redeliveries, {run.delivery_errors} delivery errors"
+                                + (f" ({run.error})" if run.error else ""),
+                           session_id=sp.session_id, run_id=sp.run_id, stage="kafka_acked", status=run.status,
+                           duration_ms=max(0, now_ms() - run.start_epoch_ms) if run.start_epoch_ms else None,
+                           error_code="delivery_error" if run.delivery_errors else None,
+                           payload={"generated": run.events_sent, "acked": run.acked, "delivery_errors": run.delivery_errors,
+                                    "duplicates_sent": run.duplicates_sent, "error": run.error})
 
     def _publish(self, c, r: dict | None) -> None:
         if r is None:

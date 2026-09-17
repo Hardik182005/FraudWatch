@@ -36,7 +36,7 @@ async def overview(session_id: str, request: Request, engine: EngineQ = "flink",
         f"""SELECT count(*) AS scored, count(*) FILTER (WHERE action = 'alert') AS alert,
                    count(*) FILTER (WHERE action = 'review') AS review, count(*) FILTER (WHERE action = 'allow') AS allow,
                    count(*) FILTER (WHERE action = 'unscored') AS unscored, count(*) FILTER (WHERE late) AS late,
-                   coalesce(sum(amount_inr) FILTER (WHERE action IN ('alert', 'review')), 0) AS flagged_inr,
+                   coalesce(sum(amount) FILTER (WHERE action IN ('alert', 'review')), 0) AS flagged_amount,
                    count(*) FILTER (WHERE persisted_at >= %(tp_from)s) AS last_minute,
                    max(persisted_at) AS last_persisted_at
             FROM scored_events WHERE session_id = %(s)s AND engine = %(e)s {run_filter}""", args)
@@ -57,7 +57,7 @@ async def overview(session_id: str, request: Request, engine: EngineQ = "flink",
     return {
         "as_of": now, "engine": engine,
         "counts": {k: c[k] for k in ("scored", "alert", "review", "allow", "unscored", "late")},
-        "amount_flagged_inr": round(float(c["flagged_inr"]), 2),
+        "amount_flagged": round(float(c["flagged_amount"]), 2),
         "throughput_eps_1m": round(c["last_minute"] / 60.0, 3),
         "latency_ms": {k: None if lat[k] is None else round(float(lat[k]), 1) for k in ("p50", "p95", "p99")}
         | {"n": lat["n"], "window_s": LATENCY_WINDOW_S},

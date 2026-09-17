@@ -63,25 +63,26 @@ def main() -> None:
 
     def amount(small: bool = False):
         if small:
-            return round(rng.uniform(1.0, 199.99), 2)
+            return round(rng.uniform(0.25, 2.49), 2)
         r = rng.random()
         if r < 0.05:
-            return rng.choice([500, 1000, 2500])  # JSON integers are valid amounts
+            return rng.choice([5, 10, 25])  # JSON integers are valid amounts
         if r < 0.07:
-            return rng.choice([0.01, 199.99, 200.0, 9_999_999.99])
-        return round(rng.lognormvariate(7.0, 1.2), 2)
+            return rng.choice([0.01, 2.49, 2.5, 999_999.99])
+        return round(rng.lognormvariate(4.2, 1.1), 2)
 
     def txn(key, event_time: int, phase: int, late: bool, small: bool = False, tg=None, pattern="normal"):
         nonlocal seq
         sess, acct = key
         ev = {
-            "schema_version": "1.0", "kind": "txn",
+            "schema_version": "1.1", "kind": "txn",
             "event_id": make_event_id(RUN_ID, seq), "demo_session_id": sess, "run_id": RUN_ID, "seq": seq,
             "account_id": acct, "event_time": FIXTURE_BASE_MS + event_time, "produced_at": FIXTURE_BASE_MS + event_time,
-            "amount_inr": amount(small), "product_cd": rng.choice(PRODUCTS), "card_network": rng.choice(NETWORKS),
+            "amount": amount(small), "product_cd": rng.choice(PRODUCTS), "card_network": rng.choice(NETWORKS),
             "card_type": rng.choice(CTYPES), "email_domain": rng.choice(DOMAINS), "device_type": rng.choice(DEVICES),
             "has_identity": rng.random() < 0.3, "target_engines": tg or targets(),
-            "merchant_name": "Parity Test Merchant (sample)", "scenario": "mixed", "pattern": pattern,
+            "source_ref": f"fixture:{seq}", "source_dt_s": event_time // 1000, "modified": True,
+            "scenario": "replay", "pattern": pattern,
             "injected": pattern != "normal",
         }
         validate_event(ev)
@@ -125,8 +126,8 @@ def main() -> None:
             heartbeat()
         if i in (100, 700, 1200):
             steps.append({"op": "invalid", "raw": "{not json"})
-            steps.append({"op": "invalid", "raw": json.dumps({"schema_version": "1.0", "kind": "txn", "event_id": "x"})})
-            steps.append({"op": "invalid", "raw": json.dumps({"schema_version": "1.0", "kind": "heartbeat", "event_time": 1.5, "produced_at": 1})})
+            steps.append({"op": "invalid", "raw": json.dumps({"schema_version": "1.1", "kind": "txn", "event_id": "x"})})
+            steps.append({"op": "invalid", "raw": json.dumps({"schema_version": "1.1", "kind": "heartbeat", "event_time": 1.5, "produced_at": 1})})
     heartbeat()
     pause(8000)
 
@@ -162,9 +163,9 @@ def main() -> None:
             if eng not in ev["target_engines"]:
                 continue
             state = states[eng].setdefault(rec["state_key"], AccountState())
-            raw = compute_raw(state, ev["event_time"], float(ev["amount_inr"]))
+            raw = compute_raw(state, ev["event_time"], float(ev["amount"]))
             if not st["late"]:
-                update(state, ev["event_time"], float(ev["amount_inr"]))
+                update(state, ev["event_time"], float(ev["amount"]))
             rec["engines"][eng] = {"late": st["late"], "raw": raw}
         expected.append(rec)
 

@@ -40,7 +40,7 @@ GENERATOR_URL = env("GENERATOR_URL", "http://generator:8002")
 SCORING_SERVICE_URL = env("SCORING_SERVICE_URL", "http://scoring:8001")
 FLINK_REST_URL = env("FLINK_REST_URL", "http://flink-jobmanager:8081")
 OPS_AGENT_URL = env("OPS_AGENT_URL", "http://ops-agent:8003")
-MODEL_VERSION = env("MODEL_VERSION", "fw-ieee-stream-1.0.0")
+MODEL_VERSION = env("MODEL_VERSION", "fw-ieee-stream-1.1.0")
 RESULTS_DIR = env("MODEL_RESULTS_DIR", "/srv/results")
 EVIDENCE_DIR = env("EVIDENCE_DIR", "/srv/evidence")
 

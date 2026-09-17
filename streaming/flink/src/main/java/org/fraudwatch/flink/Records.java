@@ -21,7 +21,7 @@ public final class Records {
         public String accountId;
         /** Event time (ms); Long.MIN_VALUE for invalid records. */
         public long eventTime;
-        public double amountInr;
+        public double amount;
         public boolean targetsFlink;
         public int partition;
         public long offset;
@@ -72,7 +72,7 @@ public final class Records {
         public long windowStart;
         public long windowEnd;
         public long txnCount;
-        public double amountSumInr;
+        public double amountSum;
         public long alertCount;
         public long reviewCount;
         public long unscoredCount;

@@ -53,7 +53,7 @@ public final class Json {
     /** Raw features object in the exact key order of fwcore.features.compute_raw. */
     public static void rawFeatures(JsonGenerator g, Features.RawFeatures r) throws IOException {
         g.writeStartObject();
-        g.writeNumberField("amount_inr", r.amountInr);
+        g.writeNumberField("amount", r.amount);
         g.writeNumberField("prior_count_60s", r.priorCount60s);
         g.writeNumberField("prior_count_10m", r.priorCount10m);
         g.writeNumberField("prior_count_1h", r.priorCount1h);

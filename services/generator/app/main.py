@@ -19,9 +19,10 @@ from fastapi import FastAPI, Header, Request
 from fastapi.responses import JSONResponse
 
 from fwcore import SCHEMA_VERSION
-from fwcore.simulation import PATTERNS
+from fwcore.replay import PATTERNS
 from fwsvc import now_ms, settings
 from fwsvc.db import migrate
+from fwsvc.logs import install as install_logs
 
 from .runner import Run, RunSpec
 from .store import Store
@@ -29,7 +30,7 @@ from .store import Store
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), format="%(asctime)s %(levelname)s %(name)s %(message)s")
 log = logging.getLogger("generator")
 
-PROFILE_PATH = Path(os.getenv("GENERATOR_PROFILE_PATH", "/models/fw-ieee-stream-1.0.0/generator_profile.json"))
+REPLAY_PACK_DIR = Path(os.getenv("REPLAY_PACK_DIR", "/models/replay/ieee-test-replay-1.0"))
 VISITOR_MAX_EPS = settings.env_float("DEMO_MAX_EVENTS_PER_SECOND", 50)
 EXPERIMENT_MAX_EPS = settings.env_float("EXPERIMENT_MAX_EVENTS_PER_SECOND", 1000)
 MAX_TOTAL_EPS = settings.env_float("GENERATOR_MAX_TOTAL_EPS", 1200)
@@ -91,8 +92,14 @@ async def status_loop() -> None:
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     migrate(settings.DATABASE_URL)
-    state["profile"] = json.loads(PROFILE_PATH.read_text())
+    state["logs"] = install_logs(settings.DATABASE_URL, "generator")
+    state["logs"].info("generator started", stage="lifecycle", status="started")
+    # records + selections only; the pack's labels.json is not copied into this image
+    state["pack"] = {"records": json.loads((REPLAY_PACK_DIR / "records.json").read_bytes())["records"],
+                     "selections": json.loads((REPLAY_PACK_DIR / "selections.json").read_bytes())}
+    state["pack_manifest"] = json.loads((REPLAY_PACK_DIR / "manifest.json").read_bytes())
     state["store"] = Store(settings.DATABASE_URL)
+    state["store"].logs = state["logs"]
     failed = state["store"].fail_orphans()
     if failed:
         log.warning("marked %d orphaned runs as failed", failed)
@@ -128,7 +135,8 @@ async def internal_auth(request: Request, call_next):
 def healthz():
     active = [r for r in state["runs"].values() if r.status in ("running", "paused")]
     return {"status": "ok" if state["partitions"] else "degraded", "partitions": state["partitions"],
-            "active_runs": len(active), "heartbeats_sent": state["heartbeats"], "heartbeat_errors": state["hb_errors"]}
+            "active_runs": len(active), "heartbeats_sent": state["heartbeats"], "heartbeat_errors": state["hb_errors"],
+            "replay_pack": {k: (state.get("pack_manifest") or {}).get(k) for k in ("pack_id", "records", "records_sha256")}}
 
 
 def _active_runs() -> list[Run]:
@@ -158,8 +166,9 @@ async def start(run_id: str):
         src = await store._run(lambda c: c.execute("SELECT control_log FROM runs WHERE id = %s", (row["replay_of"],)).fetchone())
         replay_log = (src or {}).get("control_log") or []
     spec = RunSpec(run_id=row["id"], session_id=row["session_id"], scenario=row["scenario"], seed=int(row["seed"]),
-                   rate_eps=rate, max_events=int(row["max_events"]), engines=list(row["engines"]), control_log=replay_log)
-    run = Run(spec, state["profile"], state["producer"], settings.TOPIC_TRANSACTIONS, store, cap)
+                   rate_eps=rate, max_events=int(row["max_events"]), engines=list(row["engines"]), control_log=replay_log,
+                   options=dict(row.get("options") or {}))
+    run = Run(spec, state["pack"], state["producer"], settings.TOPIC_TRANSACTIONS, store, cap)
     state["runs"][run_id] = run
     run.task = asyncio.create_task(run.run())
     return {"run_id": run_id, "status": "running", "rate_eps": rate}
@@ -203,6 +212,8 @@ async def control(run_id: str, action: str, request: Request):
     else:
         return _error(404, "not_found", "unknown action")
     await state["store"].progress(run, publish=True)
+    state["logs"].info(f"control {action}" + (f": {body}" if body else ""), session_id=run.spec.session_id,
+                       run_id=run_id, stage="control", status=run.status, payload={"action": action, **body})
     return result or {"run_id": run_id, "status": run.status, "rate_eps": run.stream.rate_eps,
                       "events_sent": run.events_sent}
 

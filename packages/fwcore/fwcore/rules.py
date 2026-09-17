@@ -1,7 +1,7 @@
-"""Explicit behavioural rules (rules-1.0).
+"""Explicit behavioural rules (rules-1.1).
 
 Rules are evidence, not model attributions. They operate on raw stream features in
-INR and are intentionally independent of how any label was created.
+source amount units (IEEE-CIS TransactionAmt, no conversion) and are intentionally independent of how any label was created.
 """
 from __future__ import annotations
 
@@ -16,18 +16,18 @@ RULES = [
     {
         "rule_id": "R2_PROFILE_DEVIATION",
         "title": "Spend-profile deviation",
-        "description": "Account has at least 5 earlier transactions and this amount is at least 8x its running mean and at least INR 5,000.",
+        "description": "Account has at least 5 earlier transactions and this amount is at least 8x its running mean and at least 60 (source amount units).",
     },
     {
         "rule_id": "R3_TEST_THEN_LARGE",
         "title": "Small test transactions then a larger one",
-        "description": "3 or more earlier transactions under INR 200 within 10 min, followed by this transaction of at least INR 2,000.",
+        "description": "3 or more earlier transactions under 2.5 (source amount units) within 10 min, followed by this transaction of at least 25 (source amount units).",
     },
 ]
 
 
 def evaluate(raw: dict) -> list[dict]:
-    amt = raw["amount_inr"]
+    amt = raw["amount"]
     ratio = raw["amount_ratio"]
     out = []
     out.append({
@@ -35,7 +35,7 @@ def evaluate(raw: dict) -> list[dict]:
         "fired": raw["prior_count_60s"] >= 4,
         "evidence": f"{raw['prior_count_60s']} earlier transactions in 60 s",
     })
-    fired2 = raw["prior_count_total"] >= 5 and ratio is not None and ratio >= 8 and amt >= 5000
+    fired2 = raw["prior_count_total"] >= 5 and ratio is not None and ratio >= 8 and amt >= 60
     out.append({
         "rule_id": "R2_PROFILE_DEVIATION",
         "fired": bool(fired2),
@@ -46,8 +46,8 @@ def evaluate(raw: dict) -> list[dict]:
     })
     out.append({
         "rule_id": "R3_TEST_THEN_LARGE",
-        "fired": raw["small_count_10m"] >= 3 and amt >= 2000,
-        "evidence": f"{raw['small_count_10m']} small transactions in 10 min before INR {amt:,.2f}",
+        "fired": raw["small_count_10m"] >= 3 and amt >= 25,
+        "evidence": f"{raw['small_count_10m']} small transactions in 10 min before amount {amt:,.2f}",
     })
     return out
 

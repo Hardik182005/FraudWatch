@@ -23,8 +23,8 @@ def run_out(r: dict) -> dict:
 def txn_summary(r: dict) -> dict:
     return {
         "event_id": r["event_id"], "engine": r["engine"], "session_id": r["session_id"], "run_id": r["run_id"],
-        "seq": r["seq"], "account_id": r["account_id"], "event_time": r["event_time"], "amount_inr": r["amount_inr"],
-        "merchant_name": r["merchant_name"], "merchant_category": r["merchant_category"], "city": r["city"],
+        "seq": r["seq"], "account_id": r["account_id"], "event_time": r["event_time"], "amount": r["amount"],
+        "source_ref": r["source_ref"], "source_dt_s": r["source_dt_s"], "modified": r["modified"],
         "action": r["action"], "score": r["score"], "late": r["late"], "pattern": r["pattern"],
         "injected": r["injected"], "rules_fired": list(r["rules_fired"]), "persisted_at": r["persisted_at"],
         "e2e_ms": r["e2e_ms"],
@@ -85,13 +85,13 @@ def trace(rows: list[dict]) -> list[dict]:
 
 
 def window_out(r: dict) -> dict:
-    return {k: r[k] for k in ("engine", "session_id", "window_start", "window_end", "txn_count", "amount_sum_inr",
+    return {k: r[k] for k in ("engine", "session_id", "window_start", "window_end", "txn_count", "amount_sum",
                               "alert_count", "review_count", "unscored_count", "emitted_at", "persisted_at")}
 
 
 def alert_out(r: dict) -> dict:
-    return {k: r[k] for k in ("event_id", "engine", "session_id", "run_id", "account_id", "amount_inr",
-                              "merchant_name", "action", "score", "created_at", "status", "decision_note",
+    return {k: r[k] for k in ("event_id", "engine", "session_id", "run_id", "account_id", "amount",
+                              "source_ref", "modified", "action", "score", "created_at", "status", "decision_note",
                               "updated_at")} | {"id": str(r["id"]), "rules_fired": list(r["rules_fired"])}
 
 

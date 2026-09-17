@@ -27,7 +27,7 @@ public final class Windows {
         @Override
         public Records.WindowAgg add(Records.ScoredRecord s, Records.WindowAgg acc) {
             acc.txnCount += 1;
-            acc.amountSumInr += s.f.input.amountInr;
+            acc.amountSum += s.f.input.amount;
             if ("alert".equals(s.action)) {
                 acc.alertCount += 1;
             } else if ("review".equals(s.action)) {
@@ -46,7 +46,7 @@ public final class Windows {
         @Override
         public Records.WindowAgg merge(Records.WindowAgg a, Records.WindowAgg b) {
             a.txnCount += b.txnCount;
-            a.amountSumInr += b.amountSumInr;
+            a.amountSum += b.amountSum;
             a.alertCount += b.alertCount;
             a.reviewCount += b.reviewCount;
             a.unscoredCount += b.unscoredCount;
@@ -65,7 +65,7 @@ public final class Windows {
                 w.windowStart = ctx.window().getStart();
                 w.windowEnd = ctx.window().getEnd();
                 w.txnCount = a.txnCount;
-                w.amountSumInr = a.amountSumInr;
+                w.amountSum = a.amountSum;
                 w.alertCount = a.alertCount;
                 w.reviewCount = a.reviewCount;
                 w.unscoredCount = a.unscoredCount;

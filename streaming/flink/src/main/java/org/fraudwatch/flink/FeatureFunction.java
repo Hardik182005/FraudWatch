@@ -49,11 +49,11 @@ public class FeatureFunction extends KeyedProcessFunction<String, Records.InputR
         if (st == null) {
             st = new Features.AccountState();
         }
-        Features.RawFeatures raw = Features.computeRaw(st, in.eventTime, in.amountInr);
+        Features.RawFeatures raw = Features.computeRaw(st, in.eventTime, in.amount);
         if (late) {
             lateCounter.inc();
         } else {
-            Features.update(st, in.eventTime, in.amountInr);
+            Features.update(st, in.eventTime, in.amount);
             state.update(st);
         }
         processed.inc();

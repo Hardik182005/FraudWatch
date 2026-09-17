@@ -7,7 +7,8 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
 from fwcore.schema import SCENARIOS
-from fwcore.simulation import PATTERNS
+from fwcore.presets import PRESETS, preset_out
+from fwcore.replay import PATTERN_TEXT, PATTERNS, REPLAY_LABEL, SCENARIO_TEXT
 from fwsvc import tokens
 
 from .. import core
@@ -17,22 +18,6 @@ from ..core import ApiError, fetch_one, limiter, now_ms, principal, require_owne
 from ..serialize import session_out
 
 router = APIRouter()
-
-SCENARIO_TEXT = {
-    "normal": "Baseline card traffic sampled from the IEEE-CIS profile",
-    "burst": "Normal traffic plus rapid repeated purchases on one account every ~15 s",
-    "profile_deviation": "Normal traffic plus purchases far above an account's usual amount",
-    "card_testing": "Normal traffic plus small test charges followed by a large one",
-    "late_events": "10% of events arrive after the 5 s watermark; 10% out of order",
-    "mixed": "All patterns rotating, with some late and out-of-order events",
-}
-PATTERN_TEXT = {
-    "burst": "Burst of purchases on one account",
-    "profile_deviation": "Amount far above the account's history",
-    "card_testing": "Small test charges, then a large purchase",
-    "late_burst": "A burst whose events arrive after the watermark",
-}
-
 
 @router.get("/config")
 async def config():
@@ -45,7 +30,13 @@ async def config():
         "model_version": core.MODEL_VERSION,
         "scenarios": [{"id": s, "label": s.replace("_", " "), "description": SCENARIO_TEXT.get(s)} for s in SCENARIOS],
         "patterns": [{"id": p, "label": p.replace("_", " "), "description": PATTERN_TEXT.get(p)} for p in PATTERNS],
+        "data_source": REPLAY_LABEL,
     }
+
+
+@router.get("/scenarios")
+async def scenarios():
+    return [preset_out(p, core.DEMO_MAX_EVENTS_PER_SESSION, core.DEMO_MAX_EVENTS_PER_SECOND) for p in PRESETS]
 
 
 class CreateSession(BaseModel):

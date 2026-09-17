@@ -27,7 +27,7 @@ public final class Sinks {
             Records.InputRecord in = s.f.input;
             return Json.build(g -> {
                 g.writeStartObject();
-                g.writeStringField("schema_version", "1.0");
+                g.writeStringField("schema_version", EventValidator.SCHEMA_VERSION);
                 g.writeStringField("record_type", "scored_txn");
                 g.writeStringField("engine", "flink");
                 Json.nullableString(g, "engine_job_id", s.engineJobId);
@@ -79,14 +79,14 @@ public final class Sinks {
             long emittedAt = System.currentTimeMillis();
             byte[] value = Json.build(g -> {
                 g.writeStartObject();
-                g.writeStringField("schema_version", "1.0");
+                g.writeStringField("schema_version", EventValidator.SCHEMA_VERSION);
                 g.writeStringField("record_type", "window");
                 g.writeStringField("engine", "flink");
                 g.writeStringField("demo_session_id", w.sessionId);
                 g.writeNumberField("window_start", w.windowStart);
                 g.writeNumberField("window_end", w.windowEnd);
                 g.writeNumberField("txn_count", w.txnCount);
-                g.writeNumberField("amount_sum_inr", w.amountSumInr);
+                g.writeNumberField("amount_sum", w.amountSum);
                 g.writeNumberField("alert_count", w.alertCount);
                 g.writeNumberField("review_count", w.reviewCount);
                 g.writeNumberField("unscored_count", w.unscoredCount);

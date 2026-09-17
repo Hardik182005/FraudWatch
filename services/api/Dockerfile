@@ -8,7 +8,7 @@ RUN pip install -r /tmp/requirements.txt
 COPY packages/fwcore /tmp/fwcore
 COPY services/common /tmp/fwsvc
 RUN pip install /tmp/fwcore /tmp/fwsvc && rm -rf /tmp/fwcore /tmp/fwsvc
-COPY ml/results/stream_model_results.json ml/results/reference_model_results.json /srv/results/
+COPY ml/results/stream_model_results.json ml/results/reference_model_results.json ml/artifacts/fw-ieee-stream-1.1.0/evaluation.json /srv/results/
 COPY services/api/app /srv/app
 RUN mkdir -p /srv/evidence && useradd --uid 10001 --create-home app
 USER app

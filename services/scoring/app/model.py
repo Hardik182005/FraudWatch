@@ -14,7 +14,7 @@ from fwcore import policy, rules
 
 RULE_TITLES = {r["rule_id"]: r["title"] for r in rules.RULES}
 RAW_INT_FIELDS = ("prior_count_60s", "prior_count_10m", "prior_count_1h", "small_count_10m", "prior_count_total")
-RAW_FLOAT_FIELDS = ("amount_inr", "prior_amount_sum_1h")
+RAW_FLOAT_FIELDS = ("amount", "prior_amount_sum_1h")
 RAW_OPTIONAL_FIELDS = ("secs_since_last", "prior_mean_amount", "amount_ratio")
 
 

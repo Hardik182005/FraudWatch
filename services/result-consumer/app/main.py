@@ -21,6 +21,7 @@ from psycopg.types.json import Jsonb
 
 from fwsvc import now_ms, settings
 from fwsvc.db import connect, heartbeat, migrate
+from fwsvc.logs import dlq_reason, install as install_logs
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), format="%(asctime)s %(levelname)s %(name)s %(message)s")
 log = logging.getLogger("result-consumer")
@@ -34,6 +35,8 @@ RESULT_TOPICS = {v: k for k, v in settings.TOPIC_RESULTS.items()}
 WINDOW_TOPICS = {v: k for k, v in settings.TOPIC_WINDOWS.items()}
 
 running = True
+sink = None          # fwsvc.logs.LogSink (structured System Intelligence logs)
+LOG_PER_BATCH = 20   # cap per-event log rows per batch so a failure storm cannot flood the table
 stats = {"results": 0, "duplicates": 0, "alerts": 0, "windows": 0, "dlq": 0, "spark_progress": 0, "invalid": 0,
          "batches": 0, "last_commit_ms": None, "max_commit_ms": 0.0, "last_persisted_at": None}
 
@@ -46,8 +49,8 @@ def _stop(*_):
 def summary_from_row(r: dict) -> dict:
     return {
         "event_id": r["event_id"], "engine": r["engine"], "session_id": r["session_id"], "run_id": r["run_id"],
-        "seq": r["seq"], "account_id": r["account_id"], "event_time": r["event_time"], "amount_inr": r["amount_inr"],
-        "merchant_name": r["merchant_name"], "merchant_category": r["merchant_category"], "city": r["city"],
+        "seq": r["seq"], "account_id": r["account_id"], "event_time": r["event_time"], "amount": r["amount"],
+        "source_ref": r["source_ref"], "source_dt_s": r["source_dt_s"], "modified": r["modified"],
         "action": r["action"], "score": r["score"], "late": r["late"], "pattern": r["pattern"],
         "injected": r["injected"], "rules_fired": list(r["rules_fired"]), "persisted_at": r["persisted_at"],
         "e2e_ms": r["e2e_ms"],
@@ -55,8 +58,8 @@ def summary_from_row(r: dict) -> dict:
 
 
 def alert_from_row(r: dict) -> dict:
-    return {k: r[k] for k in ("event_id", "engine", "session_id", "run_id", "account_id", "amount_inr",
-                              "merchant_name", "action", "score", "created_at", "status", "decision_note",
+    return {k: r[k] for k in ("event_id", "engine", "session_id", "run_id", "account_id", "amount",
+                              "source_ref", "modified", "action", "score", "created_at", "status", "decision_note",
                               "updated_at")} | {"id": str(r["id"]), "rules_fired": list(r["rules_fired"])}
 
 
@@ -76,8 +79,8 @@ def parse_result(rec: dict, engine: str, persisted_at: int) -> dict:
     return {
         "engine": engine, "event_id": ev["event_id"], "session_id": ev["demo_session_id"], "run_id": ev["run_id"],
         "seq": int(ev["seq"]), "account_id": ev["account_id"], "event_time": int(ev["event_time"]),
-        "amount_inr": float(ev["amount_inr"]), "merchant_name": ev.get("merchant_name"),
-        "merchant_category": ev.get("merchant_category"), "city": ev.get("city"), "pattern": ev.get("pattern"),
+        "amount": float(ev["amount"]), "source_ref": ev.get("source_ref"), "source_dt_s": ev.get("source_dt_s"),
+        "modified": bool(ev.get("modified", False)), "pattern": ev.get("pattern"),
         "injected": bool(ev.get("injected", False)), "action": action or "unscored", "score": score,
         "late": bool(rec.get("late", False)), "watermark_ms": rec.get("watermark_ms"),
         "rules_fired": [r["rule_id"] for r in rules_results if r.get("fired")],
@@ -99,8 +102,8 @@ def parse_result(rec: dict, engine: str, persisted_at: int) -> dict:
     }
 
 
-COLUMNS = ["engine", "event_id", "session_id", "run_id", "seq", "account_id", "event_time", "amount_inr",
-           "merchant_name", "merchant_category", "city", "pattern", "injected", "action", "score", "late",
+COLUMNS = ["engine", "event_id", "session_id", "run_id", "seq", "account_id", "event_time", "amount",
+           "source_ref", "source_dt_s", "modified", "pattern", "injected", "action", "score", "late",
            "watermark_ms", "rules_fired", "scoring_status", "engine_job_id", "engine_run_label", "event", "detail",
            "produced_at", "kafka_ts", "engine_received_at", "scoring_started_at", "scoring_completed_at",
            "emitted_at", "persisted_at", "e2e_ms"]
@@ -140,24 +143,29 @@ def persist_batch(conn, msgs: list) -> None:
             streamed_sessions = {row["id"]: row["stream_updates"] for row in
                                  conn.execute("SELECT id, stream_updates FROM demo_sessions WHERE id = ANY(%s)", (ids,))}
         feed = []
+        dup_logs, fail_logs = [], []
         with conn.cursor() as cur:
             for r in results:
                 row = cur.execute(UPSERT_SQL, r).fetchone()
                 if not row["inserted"]:
                     stats["duplicates"] += 1
+                    if len(dup_logs) < LOG_PER_BATCH:
+                        dup_logs.append(row)
                     continue
+                if row["scoring_status"] != "ok" and len(fail_logs) < LOG_PER_BATCH:
+                    fail_logs.append(row)
                 stats["results"] += 1
                 stream = streamed_sessions.get(r["session_id"], False)
                 if stream:
                     feed.append((r["session_id"], "txn", summary_from_row(row)))
                 if row["action"] in ("alert", "review"):
                     a = cur.execute(
-                        """INSERT INTO alerts (event_id, engine, session_id, run_id, account_id, amount_inr, merchant_name,
+                        """INSERT INTO alerts (event_id, engine, session_id, run_id, account_id, amount, source_ref, modified,
                                                action, score, rules_fired, created_at, updated_at)
-                           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                            ON CONFLICT (engine, event_id) DO NOTHING RETURNING *""",
                         (row["event_id"], row["engine"], row["session_id"], row["run_id"], row["account_id"],
-                         row["amount_inr"], row["merchant_name"], row["action"], row["score"], row["rules_fired"],
+                         row["amount"], row["source_ref"], row["modified"], row["action"], row["score"], row["rules_fired"],
                          persisted_at, persisted_at)).fetchone()
                     if a is not None:
                         stats["alerts"] += 1
@@ -165,18 +173,18 @@ def persist_batch(conn, msgs: list) -> None:
                             feed.append((r["session_id"], "alert", alert_from_row(a)))
             for engine, w in windows:
                 row = cur.execute(
-                    """INSERT INTO window_aggregates (engine, session_id, window_start, window_end, txn_count, amount_sum_inr,
+                    """INSERT INTO window_aggregates (engine, session_id, window_start, window_end, txn_count, amount_sum,
                                                       alert_count, review_count, unscored_count, emitted_at, persisted_at)
                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                        ON CONFLICT (engine, session_id, window_start) DO UPDATE SET duplicates = window_aggregates.duplicates + 1
                        RETURNING (xmax = 0) AS inserted, *""",
                     (engine, w["demo_session_id"], int(w["window_start"]), int(w["window_end"]), int(w["txn_count"]),
-                     float(w["amount_sum_inr"]), int(w["alert_count"]), int(w["review_count"]),
+                     float(w["amount_sum"]), int(w["alert_count"]), int(w["review_count"]),
                      int(w.get("unscored_count", 0)), w.get("emitted_at"), persisted_at)).fetchone()
                 if row["inserted"]:
                     stats["windows"] += 1
                     feed.append((row["session_id"], "window", {
-                        k: row[k] for k in ("engine", "window_start", "window_end", "txn_count", "amount_sum_inr",
+                        k: row[k] for k in ("engine", "window_start", "window_end", "txn_count", "amount_sum",
                                             "alert_count", "review_count", "unscored_count", "emitted_at", "persisted_at")
                     } | {"session_id": row["session_id"]}))
             for rec, m in dlq:
@@ -199,6 +207,8 @@ def persist_batch(conn, msgs: list) -> None:
                                 [(s, t, Jsonb(p), persisted_at)
                                  for s, t, p in feed if allowed.get(s, False)])
     commit_ms = (time.perf_counter() - t0) * 1000
+    if sink is not None:
+        _log_batch(dup_logs, fail_logs, dlq[:LOG_PER_BATCH], persisted_at)
     stats["batches"] += 1
     stats["last_commit_ms"] = round(commit_ms, 2)
     stats["max_commit_ms"] = max(stats["max_commit_ms"], round(commit_ms, 2))
@@ -206,10 +216,36 @@ def persist_batch(conn, msgs: list) -> None:
         stats["last_persisted_at"] = persisted_at
 
 
+def _log_batch(dup_logs: list, fail_logs: list, dlq: list, persisted_at: int) -> None:
+    for row in fail_logs:
+        sc = (row["detail"] or {}).get("scoring") or {}
+        sink.warning(f"{row['engine']} result persisted without a model score ({row['scoring_status']}): "
+                     f"{sc.get('error') or 'no error text'}",
+                     session_id=row["session_id"], run_id=row["run_id"], event_id=row["event_id"],
+                     trace_id=row["event_id"], engine=row["engine"], job_id=row["engine_job_id"], stage="scored",
+                     status=row["scoring_status"], error_code="scoring_failed", retry_attempt=sc.get("attempts"),
+                     timestamp_utc=row["scoring_completed_at"] or row["emitted_at"] or persisted_at)
+    for row in dup_logs:
+        sink.info(f"duplicate {row['engine']} delivery collapsed by (engine, event_id) upsert "
+                  f"(duplicates={row['duplicates']})",
+                  session_id=row["session_id"], run_id=row["run_id"], event_id=row["event_id"], trace_id=row["event_id"],
+                  engine=row["engine"], job_id=row["engine_job_id"], stage="persisted", status="duplicate",
+                  timestamp_utc=persisted_at)
+    for rec, m in dlq:
+        err = str(rec.get("error") or "")
+        sink.warning(f"dead-letter record from {rec.get('engine') or 'unknown'}: {err[:300]}", engine=rec.get("engine"),
+                     stage="engine_received", status="dead_letter", error_code=dlq_reason(err),
+                     timestamp_utc=rec.get("received_at") or persisted_at,
+                     payload={"kafka": rec.get("kafka"), "raw_excerpt": (rec.get("raw") or "")[:300]})
+
+
 def main() -> None:
+    global sink
     signal.signal(signal.SIGTERM, _stop)
     signal.signal(signal.SIGINT, _stop)
     migrate(settings.DATABASE_URL)
+    sink = install_logs(settings.DATABASE_URL, "result_consumer")
+    sink.info("result consumer started", stage="lifecycle", status="started", payload={"group": GROUP_ID})
     conn = connect(settings.DATABASE_URL, autocommit=True)
     consumer = Consumer({
         "bootstrap.servers": settings.KAFKA_BOOTSTRAP_SERVERS,

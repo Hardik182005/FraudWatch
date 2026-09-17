@@ -2,7 +2,7 @@
 
 Uses every column in train_transaction + train_identity, including Vesta's engineered
 C/D/M/V aggregates that a streaming engine could not recompute from raw events. It shows
-how much signal the deployable fs-1.0 stream model gives up. Same chronological split,
+how much signal the deployable fs-1.1 stream model gives up. Same chronological split,
 same threshold procedure (validation only), test scored once.
 
 Usage:  uv run python training/train_reference_model.py

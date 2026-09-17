@@ -1,5 +1,5 @@
 """IEEE-CIS Fraud Detection: load, map to the FraudWatch event vocabulary, compute
-fs-1.0 stream features in arrival (TransactionDT) order, and assign time-based splits.
+fs-1.1 stream features (amounts in source units, no conversion) in arrival (TransactionDT) order, and assign time-based splits.
 
 Usage:  uv run python training/ieee_data.py
 Output: data/processed/ieee_stream_features.parquet  (+ data/processed/prepare_manifest.json)
@@ -15,7 +15,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from fwcore import FEATURE_SPEC_VERSION, REFERENCE_INR_PER_USD
+from fwcore import AMOUNT_UNIT, DATASET, FEATURE_SPEC_VERSION
 from fwcore import features as F
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -53,16 +53,22 @@ def sha256_prefix(path: Path) -> str:
 def load_events() -> pd.DataFrame:
     tx = pd.read_csv(RAW / "train_transaction.csv", usecols=TXN_COLS)
     ident = pd.read_csv(RAW / "train_identity.csv", usecols=["TransactionID", "DeviceType"])
+    assert tx["TransactionID"].is_unique and ident["TransactionID"].is_unique, "TransactionID must be unique"
     df = tx.merge(ident, on="TransactionID", how="left", indicator=True)
+    assert len(df) == len(tx), "identity join must not duplicate or drop transactions"
+    missing = {c: int(tx[c].isna().sum()) for c in TXN_COLS} | {
+        "DeviceType (of identity rows)": int(ident["DeviceType"].isna().sum()),
+        "identity_rows": int(len(ident)), "transactions_with_identity": int(df["_merge"].eq("both").sum())}
     df["has_identity"] = df["_merge"].eq("both")
     df = df.drop(columns="_merge")
+    df.attrs["source_missing"] = missing
     df = df.sort_values(["TransactionDT", "TransactionID"], kind="mergesort").reset_index(drop=True)
 
     out = pd.DataFrame({
         "transaction_id": df["TransactionID"].astype("int64"),
         "label": df["isFraud"].astype("int8"),
         "event_time": (df["TransactionDT"].astype("int64") * 1000),
-        "amount_inr": df["TransactionAmt"].astype("float64") * REFERENCE_INR_PER_USD,
+        "amount": df["TransactionAmt"].astype("float64"),  # source value, no conversion
         "product_cd": df["ProductCD"].astype(str),
         "card_network": df["card4"].fillna("unknown").astype(str),
         "card_type": df["card6"].map({"debit": "debit", "credit": "credit"}).fillna(
@@ -74,11 +80,12 @@ def load_events() -> pd.DataFrame:
     # Pseudo-account key: the dataset has no true account identifier.
     out["uid"] = (df["card1"].astype("Int64").astype(str) + "_" + df["addr1"].astype("Int64").astype(str)
                   + "_" + df["P_emaildomain"].fillna("na").astype(str))
+    out.attrs["source_missing"] = missing
     return out
 
 
 def stream_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Vectorised fs-1.0 features; must equal fwcore.features on sorted, on-time data."""
+    """Vectorised fs-1.1 features; must equal fwcore.features on sorted, on-time data."""
     n = len(df)
     cols = {k: np.zeros(n) for k in ["prior_count_60s", "prior_count_10m", "prior_count_1h",
                                      "prior_amount_sum_1h", "small_count_10m", "prior_count_total"]}
@@ -88,11 +95,11 @@ def stream_features(df: pd.DataFrame) -> pd.DataFrame:
     for _, idx in df.groupby("uid", sort=False).indices.items():
         idx = np.sort(idx)
         ts = df["event_time"].to_numpy()[idx]
-        amt = df["amount_inr"].to_numpy()[idx]
+        amt = df["amount"].to_numpy()[idx]
         m = len(idx)
         pos = np.arange(m)
         csum = np.concatenate([[0.0], np.cumsum(amt)])
-        small = np.concatenate([[0], np.cumsum(amt < F.SMALL_AMOUNT_INR)])
+        small = np.concatenate([[0], np.cumsum(amt < F.SMALL_AMOUNT)])
         floor_cap = np.maximum(pos - cap, 0)
         for name, w in (("prior_count_60s", F.W_60S), ("prior_count_10m", F.W_10M), ("prior_count_1h", F.W_1H)):
             lo = np.maximum(np.searchsorted(ts, ts - w, side="left"), floor_cap)
@@ -113,13 +120,13 @@ def stream_features(df: pd.DataFrame) -> pd.DataFrame:
     feats["secs_since_last"] = secs
     feats["prior_mean_amount"] = mean
     with np.errstate(invalid="ignore", divide="ignore"):
-        feats["amount_ratio"] = np.where(feats["prior_count_total"] > 0, df["amount_inr"] / mean, np.nan)
+        feats["amount_ratio"] = np.where(feats["prior_count_total"] > 0, df["amount"] / mean, np.nan)
     return feats
 
 
 def to_model_inputs(df: pd.DataFrame, raw: pd.DataFrame) -> pd.DataFrame:
     x = pd.DataFrame(index=df.index)
-    x["log_amount"] = np.log1p(df["amount_inr"])
+    x["log_amount"] = np.log1p(df["amount"])
     for c in ["prior_count_60s", "prior_count_10m", "prior_count_1h"]:
         x[c] = raw[c].astype(float)
     x["log_prior_amount_sum_1h"] = np.log1p(raw["prior_amount_sum_1h"])
@@ -147,7 +154,7 @@ def parity_check(df: pd.DataFrame, x: pd.DataFrame, n_uids: int = 400, seed: int
     checked = 0
     for i, row in zip(sub.index, sub.itertuples(index=False)):
         st = states.setdefault(row.uid, F.AccountState())
-        raw = F.compute_raw(st, int(row.event_time), float(row.amount_inr))
+        raw = F.compute_raw(st, int(row.event_time), float(row.amount))
         ref = F.model_inputs(raw, row._asdict())
         for k in F.NUMERIC_FEATURES:
             a, b = ref[k], x.at[i, k]
@@ -159,7 +166,7 @@ def parity_check(df: pd.DataFrame, x: pd.DataFrame, n_uids: int = 400, seed: int
             max_abs = max(max_abs, d)
             if d > 1e-9:
                 raise AssertionError(f"parity {k} row {i}: ref {a} vs vectorised {b}")
-        F.update(st, int(row.event_time), float(row.amount_inr))
+        F.update(st, int(row.event_time), float(row.amount))
         checked += 1
     return {"uids": len(sample), "events": checked, "max_relative_diff": max_abs}
 
@@ -185,12 +192,15 @@ def main() -> None:
     table.to_parquet(OUT / "ieee_stream_features.parquet", index=False)
 
     manifest = {
-        "dataset": "IEEE-CIS Fraud Detection (Kaggle competition ieee-fraud-detection, provided by Vesta Corporation)",
+        "dataset": DATASET,
         "files": {p.name: {"bytes": p.stat().st_size, "sha256": sha256_prefix(p)} for p in
                   [RAW / "train_transaction.csv", RAW / "train_identity.csv"]},
         "feature_spec": FEATURE_SPEC_VERSION,
-        "reference_inr_per_usd": REFERENCE_INR_PER_USD,
+        "amount_unit": AMOUNT_UNIT,
+        "label_field": "isFraud (train_transaction.csv)",
+        "join": "train_transaction LEFT JOIN train_identity ON TransactionID (1:0..1; row count unchanged)",
         "rows": n,
+        "source_missing_values": df.attrs.get("source_missing"),
         "fraud_rate": float(df["label"].mean()),
         "uid_definition": "card1 + addr1 + P_emaildomain (pseudo-account; dataset has no account id)",
         "split": {

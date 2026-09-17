@@ -76,9 +76,9 @@ class FeatureParityTest {
             }
             boolean isLate = step.get("late").booleanValue();
             Features.AccountState st = states.computeIfAbsent(in.stateKey(), k -> new Features.AccountState());
-            Features.RawFeatures raw = Features.computeRaw(st, in.eventTime, in.amountInr);
+            Features.RawFeatures raw = Features.computeRaw(st, in.eventTime, in.amount);
             if (!isLate) {
-                Features.update(st, in.eventTime, in.amountInr);
+                Features.update(st, in.eventTime, in.amount);
             } else {
                 late++;
             }
@@ -97,7 +97,7 @@ class FeatureParityTest {
     }
 
     static void assertRawEquals(JsonNode e, Features.RawFeatures a, String id) {
-        exactDouble(e, "amount_inr", a.amountInr, id);
+        exactDouble(e, "amount", a.amount, id);
         exactLong(e, "prior_count_60s", a.priorCount60s, id);
         exactLong(e, "prior_count_10m", a.priorCount10m, id);
         exactLong(e, "prior_count_1h", a.priorCount1h, id);
@@ -134,20 +134,20 @@ class FeatureParityTest {
 
     @Test
     void validatorMatchesPythonRules() {
-        String base = "{\"schema_version\":\"1.0\",\"kind\":\"txn\",\"event_id\":\"e\",\"demo_session_id\":\"s\",\"run_id\":\"r\","
-                + "\"seq\":1,\"account_id\":\"a\",\"event_time\":1,\"produced_at\":1,\"amount_inr\":10.5,\"product_cd\":\"W\","
+        String base = "{\"schema_version\":\"1.1\",\"kind\":\"txn\",\"event_id\":\"e\",\"demo_session_id\":\"s\",\"run_id\":\"r\","
+                + "\"seq\":1,\"account_id\":\"a\",\"event_time\":1,\"produced_at\":1,\"amount\":10.5,\"product_cd\":\"W\","
                 + "\"card_network\":\"visa\",\"card_type\":\"debit\",\"email_domain\":\"gmail.com\",\"device_type\":\"mobile\","
                 + "\"has_identity\":true,\"target_engines\":[\"flink\"]}";
         assertEquals(null, err(base));
         assertEquals("missing field: seq", err(base.replace("\"seq\":1,", "")));
         assertEquals("seq must be an integer", err(base.replace("\"seq\":1", "\"seq\":true")));
         assertEquals("seq has wrong type", err(base.replace("\"seq\":1", "\"seq\":1.0")));
-        assertEquals("amount_inr out of range", err(base.replace("10.5", "0")));
-        assertEquals("amount_inr out of range", err(base.replace("10.5", "NaN")));
+        assertEquals("amount out of range", err(base.replace("10.5", "0")));
+        assertEquals("amount out of range", err(base.replace("10.5", "NaN")));
         assertEquals(null, err(base.replace("10.5", "true"))); // Python bool is an int subclass
         assertEquals("invalid target_engines", err(base.replace("[\"flink\"]", "[]")));
         assertEquals("invalid target_engines", err(base.replace("[\"flink\"]", "[\"flink\",\"storm\"]")));
-        assertEquals("unsupported schema_version", err(base.replace("\"1.0\"", "\"2.0\"")));
+        assertEquals("unsupported schema_version", err(base.replace("\"1.1\"", "\"2.0\"")));
         assertEquals("kind must be txn or heartbeat", err(base.replace("\"txn\"", "\"x\"")));
         assertEquals("event must be a JSON object", err("[1,2]"));
         assertEquals("identifier too long", err(base.replace("\"account_id\":\"a\"", "\"account_id\":\"" + "x".repeat(65) + "\"")));

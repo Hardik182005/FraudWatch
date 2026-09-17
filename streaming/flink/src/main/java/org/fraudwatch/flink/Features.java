@@ -13,7 +13,7 @@ public final class Features {
     public static final long W_60S = 60_000L;
     public static final long W_10M = 600_000L;
     public static final long W_1H = 3_600_000L;
-    public static final double SMALL_AMOUNT_INR = 200.0;
+    public static final double SMALL_AMOUNT = 2.5;
     public static final int MAX_ENTRIES = 500;
 
     private Features() {}
@@ -31,7 +31,7 @@ public final class Features {
 
     /** Raw (untransformed) features. Nullable fields mirror Python {@code None}. */
     public static class RawFeatures {
-        public double amountInr;
+        public double amount;
         public long priorCount60s;
         public long priorCount10m;
         public long priorCount1h;
@@ -46,7 +46,7 @@ public final class Features {
     }
 
     /** Port of {@code compute_raw}. Does not mutate state. */
-    public static RawFeatures computeRaw(AccountState state, long eventTime, double amountInr) {
+    public static RawFeatures computeRaw(AccountState state, long eventTime, double amount) {
         long c60 = 0, c10m = 0, c1h = 0, small10m = 0;
         double sum1h = 0.0;
         final int n = state.entryTs.length;
@@ -62,7 +62,7 @@ public final class Features {
                 sum1h += amt;
                 if (age <= W_10M) {
                     c10m += 1;
-                    if (amt < SMALL_AMOUNT_INR) {
+                    if (amt < SMALL_AMOUNT) {
                         small10m += 1;
                     }
                     if (age <= W_60S) {
@@ -72,7 +72,7 @@ public final class Features {
             }
         }
         RawFeatures r = new RawFeatures();
-        r.amountInr = amountInr;
+        r.amount = amount;
         r.priorCount60s = c60;
         r.priorCount10m = c10m;
         r.priorCount1h = c1h;
@@ -81,23 +81,23 @@ public final class Features {
         r.secsSinceLast = state.maxTs < 0 ? null : ((double) Math.max(0L, eventTime - state.maxTs)) / 1000.0;
         r.priorCountTotal = state.totalCount;
         r.priorMeanAmount = state.totalCount != 0 ? state.amountMean : null;
-        r.amountRatio = (state.totalCount >= 1 && state.amountMean > 0) ? amountInr / state.amountMean : null;
+        r.amountRatio = (state.totalCount >= 1 && state.amountMean > 0) ? amount / state.amountMean : null;
         return r;
     }
 
     /** Port of {@code update}: apply a non-late event to state (mutates in place). */
-    public static void update(AccountState state, long eventTime, double amountInr) {
+    public static void update(AccountState state, long eventTime, double amount) {
         int n = state.entryTs.length;
         long[] ts = new long[n + 1];
         double[] amt = new double[n + 1];
         System.arraycopy(state.entryTs, 0, ts, 0, n);
         System.arraycopy(state.entryAmt, 0, amt, 0, n);
         ts[n] = eventTime;
-        amt[n] = amountInr;
+        amt[n] = amount;
         state.entryTs = ts;
         state.entryAmt = amt;
         state.totalCount += 1;
-        state.amountMean += (amountInr - state.amountMean) / (double) state.totalCount;
+        state.amountMean += (amount - state.amountMean) / (double) state.totalCount;
         if (eventTime > state.maxTs) {
             state.maxTs = eventTime;
         }

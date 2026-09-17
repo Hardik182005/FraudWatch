@@ -8,7 +8,8 @@ RUN pip install -r /tmp/requirements.txt
 COPY packages/fwcore /tmp/fwcore
 COPY services/common /tmp/fwsvc
 RUN pip install /tmp/fwcore /tmp/fwsvc && rm -rf /tmp/fwcore /tmp/fwsvc
-COPY ml/artifacts/fw-ieee-stream-1.0.0/generator_profile.json /models/fw-ieee-stream-1.0.0/generator_profile.json
+# IEEE-CIS replay pack (built by ml/training/build_replay_pack.py; row-level, not in git). Labels are NOT copied.
+COPY ml/artifacts/replay/ieee-test-replay-1.0/records.json ml/artifacts/replay/ieee-test-replay-1.0/selections.json ml/artifacts/replay/ieee-test-replay-1.0/manifest.json /models/replay/ieee-test-replay-1.0/
 COPY services/generator/app /srv/app
 RUN useradd --uid 10001 --create-home app
 USER app

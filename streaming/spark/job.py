@@ -109,7 +109,7 @@ CLASSIFY_SCHEMA = T.StructType([
     T.StructField("event_id", T.StringType()),
     T.StructField("event_time", T.LongType()),
     T.StructField("wm_ms", T.LongType()),
-    T.StructField("amount_inr", T.DoubleType()),
+    T.StructField("amount", T.DoubleType()),
     T.StructField("text", T.StringType()),
     T.StructField("error", T.StringType()),
 ])
@@ -148,7 +148,7 @@ def _is_int(v) -> bool:
 
 
 def classify_one(value) -> tuple:
-    """(kind, state_key, event_id, event_time, wm_ms, amount_inr, text, error) for one Kafka value."""
+    """(kind, state_key, event_id, event_time, wm_ms, amount, text, error) for one Kafka value."""
     if value is None:
         return ("invalid", INVALID_KEY, None, None, None, None, "", "invalid JSON: empty record value")
     raw = bytes(value)
@@ -181,7 +181,7 @@ def classify_one(value) -> tuple:
             or (FILTER_RUNS and event["run_id"] not in FILTER_RUNS):
         return ("ignore", IGNORE_KEY, None, et, wm, None, None, None)
     key = f"{event['demo_session_id']}:{event['account_id']}"
-    return ("txn", key, event["event_id"], et, wm, float(event["amount_inr"]),
+    return ("txn", key, event["event_id"], et, wm, float(event["amount"]),
             raw.decode("utf-8", errors="replace"), None)
 
 
@@ -191,7 +191,7 @@ def classify(values: pd.Series) -> pd.DataFrame:
     df = pd.DataFrame(rows, columns=[f.name for f in CLASSIFY_SCHEMA.fields])
     for c in ("event_time", "wm_ms"):
         df[c] = df[c].astype("Int64")
-    df["amount_inr"] = df["amount_inr"].astype("float64")
+    df["amount"] = df["amount"].astype("float64")
     return df
 
 
@@ -231,7 +231,7 @@ def process_group(key: tuple, pdfs: Iterator[pd.DataFrame], state: GroupState) -
     changed = False
     for r in pdf.itertuples(index=False):
         et = int(r.event_time)
-        amount = float(r.amount_inr)
+        amount = float(r.amount)
         late = wm is not None and et < wm
         raw = compute_raw(st, et, amount)
         if not late:
@@ -379,7 +379,7 @@ class MainBatch:
                 failed += status != "ok"
                 retries += attempts - 1
                 late += bool(r.late)
-                rec = ('{"schema_version":"1.0","record_type":"scored_txn","engine":"spark",'
+                rec = ('{"schema_version":"1.1","record_type":"scored_txn","engine":"spark",'
                        '"engine_job_id":%s,"engine_run_label":%s,"event":%s,'
                        '"kafka":{"partition":%d,"offset":%d,"timestamp":%d},"late":%s,"watermark_ms":%s,'
                        '"raw_features":%s,"scoring":{"status":%s,"attempts":%d,"error":%s,"response":%s},'
@@ -409,9 +409,9 @@ def windows_batch(df, batch_id: int) -> None:
     now = int(time.time() * 1000)
     for r in rows:
         ws = int(r.window_start)
-        rec = {"schema_version": "1.0", "record_type": "window", "engine": "spark",
+        rec = {"schema_version": "1.1", "record_type": "window", "engine": "spark",
                "demo_session_id": r.demo_session_id, "window_start": ws, "window_end": int(r.window_end),
-               "txn_count": int(r.txn_count), "amount_sum_inr": float(r.amount_sum_inr),
+               "txn_count": int(r.txn_count), "amount_sum": float(r.amount_sum),
                "alert_count": int(r.alert_count), "review_count": int(r.review_count),
                "unscored_count": int(r.unscored_count), "emitted_at": now}
         records.append((TOPIC_WINDOWS, f"spark:{r.demo_session_id}:{ws}".encode("utf-8"),
@@ -487,7 +487,7 @@ def build_windows(spark: SparkSession, start_ms: int):
             T.StructField("event_id", T.StringType()),
             T.StructField("demo_session_id", T.StringType()),
             T.StructField("event_time", T.LongType()),
-            T.StructField("amount_inr", T.DoubleType()),
+            T.StructField("amount", T.DoubleType()),
         ])),
         T.StructField("scoring", T.StructType([
             T.StructField("response", T.StructType([
@@ -504,21 +504,21 @@ def build_windows(spark: SparkSession, start_ms: int):
             .where(label_match & (F.col("r.late") == F.lit(False)))
             .select(F.col("r.event.event_id").alias("event_id"),
                     F.col("r.event.demo_session_id").alias("demo_session_id"),
-                    F.col("r.event.amount_inr").alias("amount_inr"),
+                    F.col("r.event.amount").alias("amount"),
                     F.col("r.scoring.response.policy.action").alias("action"),
                     F.expr("timestamp_millis(r.event.event_time)").alias("event_ts"))
             .withWatermark("event_ts", "5 seconds")
             .dropDuplicatesWithinWatermark(["event_id"]))
     agg = (recs.groupBy(F.col("demo_session_id"), F.window("event_ts", "60 seconds").alias("w"))
            .agg(F.count(F.lit(1)).alias("txn_count"),
-                F.sum("amount_inr").alias("amount_sum_inr"),
+                F.sum("amount").alias("amount_sum"),
                 F.sum(F.when(F.col("action") == "alert", 1).otherwise(0)).alias("alert_count"),
                 F.sum(F.when(F.col("action") == "review", 1).otherwise(0)).alias("review_count"),
                 F.sum(F.when(F.col("action").isNull() | (F.col("action") == "unscored"), 1).otherwise(0)).alias("unscored_count"))
            .select("demo_session_id",
                    F.expr("unix_millis(w.start)").alias("window_start"),
                    F.expr("unix_millis(w.end)").alias("window_end"),
-                   "txn_count", "amount_sum_inr", "alert_count", "review_count", "unscored_count"))
+                   "txn_count", "amount_sum", "alert_count", "review_count", "unscored_count"))
     return (agg.writeStream
             .queryName(f"fraudwatch-spark-windows{'-' + RUN_LABEL if RUN_LABEL else ''}")
             .outputMode("append")

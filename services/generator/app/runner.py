@@ -1,4 +1,4 @@
-"""Run execution: turns a ScenarioStream into Kafka records at a controlled wall-clock rate.
+"""Run execution: turns an IEEE-CIS replay ScenarioStream into Kafka records at a controlled wall-clock rate.
 
 Timing model: each run has a *virtual clock* (ms since start, pauses excluded). A planned event
 with arrival offset A is produced when the virtual clock reaches A; its event_time is
@@ -18,10 +18,11 @@ from confluent_kafka import Producer
 
 from fwcore import SCHEMA_VERSION
 from fwcore.schema import make_event_id, state_key, validate_event
-from fwcore.simulation import ScenarioConfig, ScenarioStream
+from fwcore.replay import ScenarioConfig, ScenarioStream
 from fwsvc import now_ms
 
 log = logging.getLogger("generator.runner")
+DUPLICATE_LAG = 3  # a redelivered record is the one produced this many sends earlier
 
 
 @dataclass
@@ -34,12 +35,13 @@ class RunSpec:
     max_events: int
     engines: list[str]
     control_log: list[dict] = field(default_factory=list)   # replay: apply at the same base index
+    options: dict = field(default_factory=dict)              # {"duplicate_every": N} = at-least-once redelivery demo
 
 
 class Run:
-    def __init__(self, spec: RunSpec, profile: dict, producer: Producer, topic: str, store, max_rate: float):
+    def __init__(self, spec: RunSpec, pack: dict, producer: Producer, topic: str, store, max_rate: float):
         self.spec = spec
-        self.stream = ScenarioStream(ScenarioConfig.for_scenario(spec.scenario, spec.seed, spec.rate_eps), profile,
+        self.stream = ScenarioStream(ScenarioConfig.for_scenario(spec.scenario, spec.seed, spec.rate_eps), pack,
                                      spec.session_id)
         self.producer, self.topic, self.store, self.max_rate = producer, topic, store, max_rate
         self.status = "starting"
@@ -52,6 +54,11 @@ class Run:
         self.task: asyncio.Task | None = None
         self.lock = threading.Lock()
         self.delivery_errors = 0
+        self.acked = 0
+        self.duplicates_sent = 0
+        dup = int(spec.options.get("duplicate_every") or 0)
+        self.duplicate_every = dup if dup >= 2 else 0
+        self.recent: list[tuple[bytes, str]] = []   # last few produced messages, re-sent to model redelivery
         self.pending_replay = sorted(spec.control_log, key=lambda c: c["at_base_index"])
 
     # -- virtual clock ------------------------------------------------------------------
@@ -143,12 +150,26 @@ class Run:
         }
         event["produced_at"] = now_ms()  # immediately before produce(): the ingestion boundary
         validate_event(event)
-        self.producer.produce(self.topic, key=state_key(event).encode(), value=json.dumps(event, separators=(",", ":")),
-                              on_delivery=self._on_delivery)
+        key = state_key(event).encode()
+        payload = json.dumps(event, separators=(",", ":"))
+        self.producer.produce(self.topic, key=key, value=payload, on_delivery=self._on_delivery)
         self.producer.poll(0)
         self.events_sent += 1
+        self.recent.append((key, payload))
+        del self.recent[:-DUPLICATE_LAG]
+        with self.lock:
+            injected_dup = self.stream.take_redelivery()
+        if injected_dup or (self.duplicate_every and self.events_sent % self.duplicate_every == 0):
+            # Redeliver an already-produced record byte-for-byte (same event_id, event_time, produced_at):
+            # the result consumer must collapse it; engines see it as a second delivery.
+            k, v = self.recent[0]
+            self.producer.produce(self.topic, key=k, value=v, on_delivery=self._on_delivery)
+            self.producer.poll(0)
+            self.duplicates_sent += 1
 
     def _on_delivery(self, err, msg) -> None:
-        if err is not None:
+        if err is None:
+            self.acked += 1
+        else:
             self.delivery_errors += 1
             log.error("delivery failed for run %s: %s", self.spec.run_id, err)

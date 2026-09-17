@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from psycopg.types.json import Jsonb
 from pydantic import BaseModel, Field
 
+from fwcore import SCHEMA_VERSION
 from fwsvc import settings
 
 from .. import ai, core
@@ -51,8 +52,17 @@ async def model_results():
     return {"stream": _results_file("stream_model_results.json"), "reference": _results_file("reference_model_results.json")}
 
 
+@router.get("/model/evaluation")
+async def model_evaluation():
+    """CA1 visuals from the saved training artifact (evaluation.json); nothing is recomputed at request time."""
+    ev = _results_file("evaluation.json")
+    if ev is None:
+        raise ApiError(404, "not_found", "evaluation artifact not bundled with this API image")
+    return ev
+
+
 class WhatIfEvent(BaseModel):
-    amount_inr: float = Field(gt=0, le=10_000_000)
+    amount: float = Field(gt=0, le=1_000_000)
     product_cd: str = Field(max_length=20)
     card_network: str = Field(max_length=40)
     card_type: str = Field(max_length=40)
@@ -70,10 +80,10 @@ class WhatIf(BaseModel):
 async def what_if(body: WhatIf, request: Request):
     limiter.check(request, "what_if", 30, 60)
     now = now_ms()
-    event = {"schema_version": "1.0", "kind": "txn", "event_id": "what-if", "demo_session_id": "what-if",
+    event = {"schema_version": SCHEMA_VERSION, "kind": "txn", "event_id": "what-if", "demo_session_id": "what-if",
              "run_id": "what-if", "seq": 0, "account_id": "what-if", "event_time": now, "produced_at": now,
              "target_engines": ["flink"], **body.event.model_dump()}
-    raw = dict(body.raw) | {"amount_inr": body.event.amount_inr}
+    raw = dict(body.raw) | {"amount": body.event.amount}
     r = await core.internal("POST", f"{core.SCORING_SERVICE_URL}/v1/score",
                             json={"engine": "what-if", "items": [{"event": event, "raw": raw, "late": False}]})
     if r.status_code == 400:
@@ -317,8 +327,8 @@ async def _alert_context(p, ref_id: str | None) -> tuple[str, str, list]:
     policy = d.get("policy") or {}
     th = m.get("thresholds") or {}
     lines = [
-        f"Alert {a['id']} ({a['engine']}): action={a['action']}, status={a['status']}, amount_inr={a['amount_inr']:.2f}, "
-        f"merchant={a['merchant_name']}, account={a['account_id']}",
+        f"Alert {a['id']} ({a['engine']}): action={a['action']}, status={a['status']}, amount={a['amount']:.2f} (source units, no conversion), "
+        f"source_ref={a['source_ref']}, pseudo-account={a['account_id']}",
         f"Model {m.get('version')}: score={_fmt(m.get('score'))}; alert threshold={_fmt(th.get('alert'))}, "
         f"review threshold={_fmt(th.get('review'))}. Score is a ranking score, not a calibrated probability.",
         "Top TreeSHAP contributions (log-odds; positive raises the score): "

@@ -15,7 +15,7 @@ from fwsvc import settings
 from fwsvc.db import migrate
 
 from . import core
-from .routes import live, runs, sessions, system
+from .routes import internal, live, runs, sessions, system
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), format="%(asctime)s %(levelname)s %(name)s %(message)s")
 log = logging.getLogger("api")
@@ -83,5 +83,5 @@ async def healthz():
     return {"status": "ok"}
 
 
-for r in (sessions.router, runs.router, live.router, system.router):
+for r in (sessions.router, runs.router, live.router, system.router, internal.router):
     app.include_router(r, prefix="/api/v1")

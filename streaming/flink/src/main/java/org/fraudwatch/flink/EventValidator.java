@@ -25,8 +25,8 @@ import java.util.Map;
  */
 public final class EventValidator {
 
-    public static final String SCHEMA_VERSION = "1.0";
-    public static final double MAX_AMOUNT_INR = 10_000_000.0;
+    public static final String SCHEMA_VERSION = "1.1";
+    public static final double MAX_AMOUNT = 1_000_000.0;
 
     static final List<String> PRODUCT_CODES = Arrays.asList("W", "C", "R", "H", "S");
     static final List<String> CARD_NETWORKS = Arrays.asList("visa", "mastercard", "american express", "discover", "unknown");
@@ -49,7 +49,7 @@ public final class EventValidator {
         REQUIRED.put("account_id", T.STR);
         REQUIRED.put("event_time", T.INT);
         REQUIRED.put("produced_at", T.INT);
-        REQUIRED.put("amount_inr", T.NUM);
+        REQUIRED.put("amount", T.NUM);
         REQUIRED.put("product_cd", T.STR);
         REQUIRED.put("card_network", T.STR);
         REQUIRED.put("card_type", T.STR);
@@ -144,8 +144,8 @@ public final class EventValidator {
             throw new ValidationException("kind must be txn or heartbeat");
         }
         double amount = amountOf(event);
-        if (!(0 < amount && amount <= MAX_AMOUNT_INR)) {
-            throw new ValidationException("amount_inr out of range");
+        if (!(0 < amount && amount <= MAX_AMOUNT)) {
+            throw new ValidationException("amount out of range");
         }
         if (!PRODUCT_CODES.contains(event.get("product_cd").textValue())) {
             throw new ValidationException("invalid product_cd");
@@ -184,9 +184,9 @@ public final class EventValidator {
         }
     }
 
-    /** {@code float(event["amount_inr"])} (a JSON boolean counts as 1.0 / 0.0 like Python). */
+    /** {@code float(event["amount"])} (a JSON boolean counts as 1.0 / 0.0 like Python). */
     public static double amountOf(JsonNode event) {
-        JsonNode a = event.get("amount_inr");
+        JsonNode a = event.get("amount");
         if (a.isBoolean()) {
             return a.booleanValue() ? 1.0 : 0.0;
         }

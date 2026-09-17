@@ -39,7 +39,7 @@ public class InputDeserializer implements KafkaRecordDeserializationSchema<Recor
             r.sessionId = node.get("demo_session_id").textValue();
             r.accountId = node.get("account_id").textValue();
             r.eventTime = node.get("event_time").longValue();
-            r.amountInr = EventValidator.amountOf(node);
+            r.amount = EventValidator.amountOf(node);
             boolean flink = false;
             for (JsonNode t : node.get("target_engines")) {
                 if ("flink".equals(t.textValue())) {
