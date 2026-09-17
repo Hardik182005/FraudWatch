@@ -1,0 +1,21 @@
+[project]
+name = "fraudwatch-ml"
+version = "1.0.0"
+description = "FraudWatch CA1 training and evaluation"
+requires-python = "==3.12.*"
+dependencies = [
+    "fwcore",
+    "numpy==2.5.3",
+    "pandas==3.0.5",
+    "pyarrow==25.0.1",
+    "scikit-learn==1.9.1",
+    "lightgbm==4.7.0",
+    "joblib==1.6.0",
+    "matplotlib==3.11.2",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+fwcore = { path = "../packages/fwcore", editable = true }

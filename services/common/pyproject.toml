@@ -1,0 +1,16 @@
+[project]
+name = "fwsvc"
+version = "1.0.0"
+description = "FraudWatch service helpers: settings, Postgres pool + migrations, signed tokens, heartbeats"
+requires-python = ">=3.12"
+dependencies = []  # pinned per service in requirements.txt
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["fwsvc*"]
+
+[tool.setuptools.package-data]
+fwsvc = ["migrations/*.sql"]

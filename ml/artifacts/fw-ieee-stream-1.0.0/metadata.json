@@ -1,0 +1,198 @@
+{
+  "model_version": "fw-ieee-stream-1.0.0",
+  "model_type": "lightgbm",
+  "score_semantics": "model score in [0,1]; not a calibrated probability unless calibration results support it",
+  "feature_spec": "fs-1.0",
+  "features": {
+    "numeric": [
+      "log_amount",
+      "prior_count_60s",
+      "prior_count_10m",
+      "prior_count_1h",
+      "log_prior_amount_sum_1h",
+      "log_secs_since_last",
+      "log_prior_count_total",
+      "log_amount_ratio",
+      "has_history"
+    ],
+    "categorical": [
+      "product_cd",
+      "card_network",
+      "card_type",
+      "email_domain",
+      "device_type",
+      "has_identity"
+    ],
+    "categories": {
+      "product_cd": [
+        "W",
+        "C",
+        "R",
+        "H",
+        "S"
+      ],
+      "card_network": [
+        "visa",
+        "mastercard",
+        "american express",
+        "discover",
+        "unknown"
+      ],
+      "card_type": [
+        "debit",
+        "credit",
+        "other",
+        "unknown"
+      ],
+      "email_domain": [
+        "gmail.com",
+        "yahoo.com",
+        "hotmail.com",
+        "anonymous.com",
+        "aol.com",
+        "other",
+        "missing"
+      ],
+      "device_type": [
+        "desktop",
+        "mobile",
+        "unknown"
+      ],
+      "has_identity": [
+        "no",
+        "yes"
+      ]
+    }
+  },
+  "thresholds": {
+    "alert": 0.12099497278847468,
+    "review": 0.06909083877177613,
+    "alert_method": "max F1 on validation",
+    "review_method": "min(alert, top 10% of validation scores)"
+  },
+  "ruleset_version": "rules-1.0",
+  "policy_version": "policy-1.0",
+  "reference_inr_per_usd": 88.0,
+  "seed": 20260917,
+  "dataset": {
+    "dataset": "IEEE-CIS Fraud Detection (Kaggle competition ieee-fraud-detection, provided by Vesta Corporation)",
+    "files": {
+      "train_transaction.csv": {
+        "bytes": 683351067,
+        "sha256": "3a5c83ab6b3cc13dcabe5ffa9f522307fd5f7f7b6e6f6a60c32284ca6283d642"
+      },
+      "train_identity.csv": {
+        "bytes": 26529680,
+        "sha256": "b63c725d8377be90a995268d97f347c17d456b95db45807adcf9f59cd603c37c"
+      }
+    },
+    "feature_spec": "fs-1.0",
+    "reference_inr_per_usd": 88.0,
+    "rows": 590540,
+    "fraud_rate": 0.03499000914417313,
+    "uid_definition": "card1 + addr1 + P_emaildomain (pseudo-account; dataset has no account id)",
+    "split": {
+      "method": "chronological by TransactionDT (ties by TransactionID), no shuffling",
+      "fractions": [
+        0.7,
+        0.15,
+        0.15
+      ],
+      "boundaries_event_time_s": {
+        "validation_start": 10438003,
+        "test_start": 13151880
+      },
+      "counts": {
+        "train": 413378,
+        "validation": 88581,
+        "test": 88581
+      },
+      "fraud_rate": {
+        "train": 0.03516878014795175,
+        "validation": 0.03434145019812375,
+        "test": 0.03480430340592226
+      }
+    },
+    "feature_history_note": "State features use each account's earlier transactions in any split as history only; labels are never used as features.",
+    "parity_check": {
+      "uids": 405,
+      "events": 34801,
+      "max_relative_diff": 1.295454348351926e-13
+    },
+    "seconds": 48.7,
+    "python": "3.12.12"
+  },
+  "explanations": "LightGBM pred_contrib (TreeSHAP, log-odds)",
+  "feature_importance_gain": [
+    {
+      "feature": "log_amount",
+      "gain": 90369.72517323494
+    },
+    {
+      "feature": "product_cd",
+      "gain": 89272.21633148193
+    },
+    {
+      "feature": "device_type",
+      "gain": 35780.8732380867
+    },
+    {
+      "feature": "email_domain",
+      "gain": 33459.98123717308
+    },
+    {
+      "feature": "log_secs_since_last",
+      "gain": 32859.89997839928
+    },
+    {
+      "feature": "log_amount_ratio",
+      "gain": 26141.285970926285
+    },
+    {
+      "feature": "card_type",
+      "gain": 24957.906725883484
+    },
+    {
+      "feature": "log_prior_count_total",
+      "gain": 18809.738550901413
+    },
+    {
+      "feature": "has_identity",
+      "gain": 11489.496771812439
+    },
+    {
+      "feature": "log_prior_amount_sum_1h",
+      "gain": 8912.24824166298
+    },
+    {
+      "feature": "card_network",
+      "gain": 6205.441239118576
+    },
+    {
+      "feature": "prior_count_10m",
+      "gain": 1211.7811470031738
+    },
+    {
+      "feature": "prior_count_1h",
+      "gain": 1134.6721229553223
+    },
+    {
+      "feature": "prior_count_60s",
+      "gain": 312.17169070243835
+    },
+    {
+      "feature": "has_history",
+      "gain": 7.226240158081055
+    }
+  ],
+  "training_command": "cd ml && uv run python training/ieee_data.py && uv run python training/train_stream_model.py",
+  "environment": {
+    "python": "3.12.12",
+    "platform": "Windows-11-10.0.22631-SP0",
+    "scikit_learn": "1.9.1",
+    "lightgbm": "4.7.0",
+    "pandas": "3.0.5",
+    "numpy": "2.5.3"
+  },
+  "trained_at_unix": 1789654382
+}
