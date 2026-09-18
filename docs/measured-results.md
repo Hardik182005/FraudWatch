@@ -111,12 +111,43 @@ An earlier failed wake, `wake-362778af7f70`, is preserved in the history with `w
 `starting_services` followed by `vm_stop_after_failure` — the failure path stops the VM rather than
 leaving it running, and the history is not rewritten to hide it.
 
-## 5. Site reachability
+## 5. Idle shutdown — operation `stop-0cdb13d13b32`
+
+Measured at the **production** settings (`PIPELINE_IDLE_TIMEOUT_MINUTES=45`,
+`PIPELINE_MIN_UPTIME_MINUTES=10`), not at a shortened test timeout. Every line below is an event from
+`GET /lifecycle/history`, in UTC.
+
+| Time (UTC) | Event | Detail |
+|---|---|---|
+| 2026-09-17 19:08:40 | `ready` | wake `wake-39bed768b949`; last activity 19:08:15 |
+| 2026-09-17 19:53:43 | `idle_shutdown_started` | `idle_minutes: 45.0`, `last_activity_at` 19:08:15 |
+| 2026-09-17 19:53:44 | `drain_requested` | `{"failed": ["r_5cf6b929471a5adc"], "stopped": []}` |
+| 2026-09-17 19:53:54 | `vm_stop_requested` | `undrained_runs: 0`, GCE op `operation-1789674834658-…` |
+| 2026-09-17 19:54:26 | `sleeping` | `stop_duration_ms: 42153` |
+
+Idle interval actually observed: 19:08:15 → 19:53:43 = **45 min 28 s** after the last meaningful
+activity, against a 45-minute policy. VM stop took **42.2 s** from request to `sleeping`.
+
+One honest detail: the drain call reported `failed: ["r_5cf6b929471a5adc"]` and stopped nothing. The
+subsequent `/internal/active-work` check nonetheless reported `undrained_runs: 0`, so the shutdown
+proceeded. The events are consistent with a run that was already finished when drain was called, but
+the history does not prove that, and the drain failure itself is not explained by the recorded events.
+
+Together with §4, the full loop `sleeping → starting_vm → starting_services → restoring → ready →
+stopping → sleeping` has now been observed end to end in production, including one failed wake that
+stopped the VM instead of leaving it running.
+
+## 6. Site reachability
 
 - `https://fraudwatch-live-997216389793.asia-south1.run.app` → HTTP 200
 - `https://fraudwatch-lab-997216389793.asia-south1.run.app` → HTTP 200
 - Both serve an identical `config.js` pointing at the same controller, so both sites share one backend.
 - `/viva` → HTTP 301 to `/` on both sites.
+- Every SPA route returns 200: Live `/console`, `/alerts`, `/scenario`, `/pipeline`; Lab `/study`,
+  `/ca1`, `/ca2`, `/experiments`, `/architecture`, `/evidence`.
+- Every built asset is served, including the lazy-loaded 3D chunks (`sceneKit`, `LiveScene3D`,
+  `LabScene3D`, `Pipeline3D`, and the 938 KB `three`/`OrbitControls` chunk).
+- Checked against revisions `fraudwatch-live-00003-wc4` and `fraudwatch-lab-00003-4gs`.
 - While the VM is not ready, the controller returns `503 {"error":{"code":"pipeline_starting_vm", …}}`
   rather than a fabricated empty result.
 
@@ -126,4 +157,9 @@ leaving it running, and the history is not rewritten to hide it.
 - p99 latency, and latency under backpressure or at saturation.
 - Spark with a trigger interval other than 1000 ms.
 - Any comparison run through the `services/ops-agent/` experiment runner (not implemented).
-- Browser-rendered verification of both deployed sites (checked with `curl` only so far).
+- Browser-rendered verification of both deployed sites at the Cloud Run origin (checked with `curl`
+  only so far — WebGL initialisation, the SSE stream and the browser console are unverified there).
+  The Playwright suite does render both apps in a real Chromium, but against the local
+  `npm run preview` origin. An attempt to drive Chrome directly on 2026-09-18 failed because the
+  browser extension was not connected.
+- Why the drain call in §5 reported a failure while `active-work` reported nothing in flight.

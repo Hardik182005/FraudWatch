@@ -43,6 +43,7 @@ Transactions replayed from the IEEE-CIS Fraud Detection dataset are published to
 [![license none granted](https://img.shields.io/badge/license-none%20granted-lightgrey)](#license-and-academic-integrity)
 [![engine comparison measured](https://img.shields.io/badge/engine%20comparison-measured%20on%20GCP-success)](docs/measured-results.md)
 [![throughput not measured yet](https://img.shields.io/badge/throughput-not%20measured%20yet-critical)](docs/benchmark-methodology.md)
+[![lifecycle measured](https://img.shields.io/badge/wake%20%2B%20idle%20stop-measured%20in%20production-success)](docs/measured-results.md)
 
 </div>
 
@@ -132,6 +133,7 @@ local stack is an exact substitute apart from the wake step.
 | **Storage / API** | PostgreSQL 17.11 + FastAPI `/api/v1` with Server-Sent Events |
 | **Frontend** | two React 19 + Vite 8 sites sharing `packages/ui` and `packages/contracts`, with `three` / `@react-three/fiber` 3D scenes |
 | **Cloud** | Cloud Run (min-instances 0) plus one Compute Engine VM woken on visit and stopped after 45 idle minutes, on Free Trial credit |
+| **Lifecycle** | measured end to end in production: cold wake to `ready` in **24.9 s**, idle stop fired after an observed **45 min 28 s** without activity, VM `stopping → sleeping` in **42.2 s** ([`docs/measured-results.md`](docs/measured-results.md) §4–§5) |
 | **Engine comparison** | measured on GCP over one identical 500-record stream: **500/500 decision agreement**, max score difference `0.000000000`; e2e p50 **Flink 92 ms vs Spark 3862 ms** ([`docs/measured-results.md`](docs/measured-results.md)). Throughput at saturation is **_not measured yet_**, and the experiment runner (`services/ops-agent/app/`) is still an empty directory |
 
 ---
