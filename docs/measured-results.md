@@ -9,8 +9,9 @@ How to reproduce each run is in [`benchmark-methodology.md`](benchmark-methodolo
 were orchestrated **manually** (a row inserted into `runs`, then `POST /runs/{id}/start` on the
 generator with the internal token), not through the `services/ops-agent/` experiment runner. That does
 not change what was measured — both engines consumed the same Kafka records — but it does mean these
-particular runs were not produced by the runner. The runner now exists (`services/ops-agent/`) and has
-executed a `late_events` experiment end to end locally; it has not yet re-run the comparison above.
+particular runs were not produced by the runner. The runner (`services/ops-agent/`) has since run all
+three experiment kinds: `late_events` (§2b) and `comparison` (§1b) on the local Compose stack, and
+`recovery` (§3b) both locally and **on the GCP VM**, where it is now deployed.
 
 ## 1. Flink vs Spark parity — run `r_d48339d70bb9ceb4`
 
@@ -46,6 +47,79 @@ would narrow the gap; that variant was not run.
 **Not measured:** sustained throughput (events/second at saturation) for either engine, p99 latency,
 CPU/memory cost per event, and behaviour under backpressure. The run was rate-limited to 10 eps by the
 generator, so it measures latency at a low, fixed arrival rate — it is not a throughput benchmark.
+
+## 1b. Flink vs Spark through the experiment runner — `exp_20260918_102135_6201bb`
+
+The §1 comparison reproduced through `services/ops-agent/`, with the protocol §1 lacked: a 100-event
+warm-up run that is excluded, then **three repeats per engine** of 300 IEEE-CIS replay records at
+10 events/second, seed `20260917`, with the engine order alternated between repeats (Flink first in
+repeats 1 and 3, Spark first in repeat 2) so neither engine always runs on a warmer system. A separate
+shared run feeds both engines for the parity check. **Local Docker Compose stack, not GCP.**
+Flink 1.20.5; Spark trigger interval 1 s.
+
+| Engine | Persisted | Missing | Dup. | e2e p50 (ms) | e2e p95 (ms) | e2e p99 (ms) | Processed ev/s | CPU % | Mem (MB) |
+|---|---|---|---|---|---|---|---|---|---|
+| Flink | 900 / 900 | 0 | 0 | **110** | **167** | **207** | 9.95 | 25.0 | 707 |
+| Spark | 900 / 900 | 0 | 0 | **4027** | **6518** | **7387** | 8.86 | 208.7 | 1518 |
+
+Percentiles are the median of the three per-run percentiles. Per run, Flink's p50 was 119 / 110 / 104 ms
+and Spark's 4194 / 4027 / 3760 ms, so the gap is stable across repeats rather than one noisy run.
+CPU and memory are sampled from each engine's container during its runs; Spark's CPU figure is above
+100 % because it uses more than one core.
+
+Parity, over run `r_626d380d31223a40` scored by both engines: **300 in both, 300 same action, 0
+different, 0 raw-feature mismatches, 0 engine-only events** — the same exact agreement §1 found on GCP.
+
+**Reading this honestly.** It confirms §1 under a better protocol and adds what §1 could not state:
+p99, repeat-to-repeat spread and resource cost. The local p50s (110 / 4027 ms) sit close to the GCP
+ones (92 / 3862 ms). It is still a fixed 10 ev/s arrival rate on one shared host — latency at that
+rate, not maximum throughput, and not engines in isolation. `winner` is deliberately `null`: the runner
+reports the numbers and does not declare one.
+
+## 1c. The same comparison on the deployed GCP stack — `exp_20260918_115240_64fd11`
+
+§1b run again through the same experiment runner, unchanged, **on the Compute Engine VM** rather than
+the laptop: identical protocol and identical parameters (100-event warm-up excluded, one shared parity
+run, then three repeats per engine of 300 IEEE-CIS replay records at 10 events/second, seed `20260917`,
+engine order alternated), queued through the public API with `POST /api/v1/experiments` and operator
+auth via the Cloud Run controller. Because the defaults were not overridden, this is a like-for-like
+counterpart to §1b rather than an approximate one. **The local Docker Compose stack was stopped for the
+whole of this experiment**, so nothing on the laptop took part in it.
+
+| Engine | Persisted | Missing | Dup. | e2e p50 (ms) | e2e p95 (ms) | e2e p99 (ms) | Processed ev/s | CPU % | Mem (MB) |
+|---|---|---|---|---|---|---|---|---|---|
+| Flink | 900 / 900 | 0 | 0 | **110.5** | **155.0** | **166.0** | 9.97 | 17.0 | 866.7 |
+| Spark | 900 / 900 | 0 | 0 | **3553.0** | **4999.3** | **5391.9** | 8.80 | 197.0 | 1277.0 |
+
+All six measured runs drained `complete` — none by `stable` or `timeout` — with 0 missing, 0 duplicate
+and 0 failed-scoring records in every one. Per run, Flink's p50 was 112.0 / 110.5 / 101.0 ms and
+Spark's 3736.0 / 3553.0 / 3499.5 ms, so as locally the gap is stable across repeats rather than one
+noisy run. Percentiles are the median of the three per-run percentiles.
+
+Parity, over run `r_93ae9398e138b9bc` scored by both engines: **300 in both, 300 same action, 0
+different, 0 raw-feature mismatches, 0 engine-only events, 0 late-flag disagreements** — the third
+independent reproduction of exact agreement, and the first produced end to end in the cloud.
+
+**GCP against local, side by side.** The two stacks are close enough that neither result depends on
+where it ran:
+
+| | Flink p50 | Flink p99 | Spark p50 | Spark p99 | Flink CPU % | Spark CPU % |
+|---|---|---|---|---|---|---|
+| §1b local | 110 | 207 | 4027 | 7387 | 25.0 | 208.7 |
+| §1c GCP | 110.5 | 166.0 | 3553.0 | 5391.9 | 17.0 | 197.0 |
+
+Flink's median is effectively identical (110 vs 110.5 ms). The tails are tighter on the VM and Spark is
+about 12 % faster there, which is what a dedicated four-vCPU machine doing nothing else should look like
+next to a laptop that is also running a desktop; it is not evidence of an engine difference. Flink's
+memory is higher on the VM (866.7 vs 707.3 MB) and its CPU lower (17.0 vs 25.0 %), again consistent with
+a less contended host.
+
+**Reading this honestly.** This closes the "runner comparison on GCP" gap and shows the deployment
+reproduces the local numbers rather than merely running. It does not change what the measurement *is*:
+a fixed 10 ev/s arrival rate, both engines sharing one host, one Kafka cluster and one scoring service.
+Throughput at saturation, p99 under load and backpressure behaviour remain **not measured** — every run
+here is rate-limited by design. `winner` is `null` on this run too; the runner reports numbers and does
+not declare one.
 
 ## 2. Late-event handling — run `r_b17d3ca811cf1137`
 
@@ -124,6 +198,47 @@ Job `20d1ba3421afcb29654a0025021b8451`, EXACTLY_ONCE checkpointing every 10 s, r
 Note that the failure is only detected once the heartbeat times out (~60 s). Checking the job state
 immediately after the kill shows `RUNNING` with `restored = 0`; that is the heartbeat interval, not a
 successful survival.
+
+## 3b. Recovery through the experiment runner — local and on the GCP VM
+
+The same fault, injected by `services/ops-agent/` instead of by hand: replay 600 IEEE-CIS records at
+10 ev/s, `SIGKILL` the Flink TaskManager once 150 have been sent, bring it back, and check that every
+record still arrives exactly once in PostgreSQL.
+
+| | Local Compose — `exp_20260918_101931_c906a6` | **GCP VM** — `exp_20260918_102443_cf51cc` |
+|---|---|---|
+| Kill | at event 150 | at event 150 (10:24:59 UTC) |
+| TaskManager restarted by | the ops-agent, +21.7 s | the ops-agent, +21.1 s |
+| Restored from | `chk-2543` | `chk-1006` |
+| Flink restore (`restore_ms`) | **42.5 s** after the kill | **36.6 s** after the kill |
+| Seen `RUNNING` again (`recovery_ms`) | 43.1 s | 41.8 s |
+| Persisted | **600 / 600**, 0 missing | **600 / 600**, 0 missing |
+| Duplicate deliveries | 57 | 56 |
+| Drain | complete | complete |
+
+**Reading this honestly.** The duplicate deliveries are the expected cost of restoring from a
+checkpoint: records processed after `chk-N` but before the kill are replayed. They are counted on
+arrival and absorbed by the idempotent sink, which is why *persisted* is exactly 600 and not 656.
+Most of the ~40 s is the JobManager waiting out its heartbeat timeout before it even notices the
+TaskManager has gone; the restart itself is quick. A `SIGKILL` through the Docker API counts as a
+manual stop, so the `unless-stopped` restart policy did **not** bring the container back — the agent
+waited 20 s, saw it still down, and started it. The result records which of the two did it.
+
+**Bugs this found in the runner, all fixed before the runs above.** The first attempts did not produce
+results worth reporting, and are listed so the numbers above are read in context:
+
+1. `exp_20260918_094839_d571fc` reported `completed` while it had sent 0 events and the kill had
+   landed on an idle job. The kill now waits for the run to reach `kill_after_events`, and an
+   experiment whose kill was skipped or failed ends as `failed`, not `completed`.
+2. `exp_20260918_095809_c90f16` killed the TaskManager, then read Docker's state a moment later while it
+   still said `running`, concluded the restart policy had already revived it, and never started it. The
+   Flink job exhausted its restart attempts and `FAILED`. The agent now waits for the container to go
+   down before deciding who brings it back. (Cancelled by the operator.)
+3. `exp_20260918_100817_80f9eb` measured `recovery_ms = 465 278` because the agent only began watching
+   for `RUNNING` after the whole run had drained. It now watches from the moment of the kill, and
+   requires a checkpoint restore later than the kill — the job-level state alone can read `RUNNING`
+   straight through a failure. The same run showed 0 of 600 persisted: the local result-consumer had a
+   stale Kafka connection. After restarting it, all 600 were persisted, with none lost.
 
 ## 4. Lifecycle wake
 
@@ -259,11 +374,10 @@ browser state. Log and screenshots: `reports/media/screenshots/cross-site-*`.
 ## What is still not measured
 
 - Sustained throughput for either engine.
-- p99 latency, and latency under backpressure or at saturation.
+- Latency under backpressure or at saturation. p99 at 10 ev/s is now measured (§1b), locally only.
 - Spark with a trigger interval other than 1000 ms.
-- Any comparison run through the `services/ops-agent/` experiment runner. The runner is implemented
-  and has completed a `late_events` experiment locally, but the comparison in §1 predates it and has
-  not been reproduced through it.
+- The §1b comparison on GCP. Through the runner it has been measured on the local Compose stack only;
+  on the VM the runner has so far run `recovery` (§3b).
 - A controlled benchmark of what §7.2 shows. The console was observed carrying real data in a browser,
   but that is a live UI snapshot mid-run, not a measured run under the §1 protocol.
 - Why the drain call in §5 reported a failure while `active-work` reported nothing in flight.
