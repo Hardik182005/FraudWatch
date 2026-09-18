@@ -147,12 +147,55 @@ docker compose --env-file .env -p fraudwatch \
 | scoring | not published | 8001 | in-network only (`http://scoring:8001`) |
 | generator | not published | 8002 | in-network only (`http://generator:8002`) |
 | result-consumer | not published | — | no HTTP server |
+| ops-agent | not published | 8003 | in-network only (`http://ops-agent:8003`); runs experiments and starts/stops Spark |
 | FraudWatch Live (dev) | `localhost:5173` | — | `strictPort: true` |
 | FraudWatch Lab (dev) | `localhost:5174` | — | `strictPort: true` |
 | FraudWatch Live (preview) | `localhost:4173` | — | production build |
 | FraudWatch Lab (preview) | `localhost:4174` | — | production build |
 
 Everything except the dev servers is bound to `127.0.0.1` by default. Nothing is exposed on `0.0.0.0`.
+
+## 5b. Running an experiment
+
+The `ops-agent` service claims queued experiments one at a time and executes them. It needs the Docker
+socket, because a `comparison` has to start the Spark container and a `recovery` has to kill the Flink
+TaskManager:
+
+```yaml
+user: "10001:${DOCKER_GID:-0}"
+volumes:
+  - /var/run/docker.sock:/var/run/docker.sock
+```
+
+`DOCKER_GID` is the group that owns the socket on **your** host, and it differs by platform:
+
+| Host | Value | How to check |
+|---|---|---|
+| Docker Desktop (Windows/macOS) | `0` — the socket is exposed as `root:root` | `docker run --rm -v /var/run/docker.sock:/var/run/docker.sock alpine stat -c %g /var/run/docker.sock` |
+| Linux (including the GCP VM) | the `docker` group id, commonly `999` | `stat -c %g /var/run/docker.sock` |
+
+With the wrong value the agent still starts and still runs experiments that need no Docker, but
+`GET /healthz` reports `"docker": false` and `comparison` / `recovery` fail rather than pretending.
+
+Queue an experiment as the operator (`kind` is `comparison`, `late_events` or `recovery`):
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/api/v1/experiments   -H "x-operator-token: $OPERATOR_TOKEN" -H 'content-type: application/json'   -d '{"kind": "late_events", "params": {"events": 600, "rate_eps": 5, "seed": 20260917}}'
+```
+
+Poll `GET /api/v1/experiments/{id}` for `progress` and, when it finishes, `results`. Two rules the
+runner enforces rather than papering over: a `comparison` discards the first run of each engine as a
+warm-up and alternates engine order across repeats, and a `late_events` run shorter than 60 s is
+**rejected** — the injected delays are 15-30 s, so a short run would deliver none of them and report a
+misleading `late: 0`.
+
+A `comparison` needs the Spark container to exist. Create it once:
+
+```bash
+docker compose --env-file .env -p fraudwatch   -f infra/compose/compose.yaml -f infra/compose/compose.streaming.yaml   --profile spark up -d spark
+```
+
+After that, `POST /api/v1/ops/spark/start` and `/stop` (operator) start and stop it through the agent.
 
 ## 6. Run the websites
 

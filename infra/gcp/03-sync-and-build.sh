@@ -17,7 +17,7 @@ tar -C "$ROOT" -czf "$WORK/src.tgz" \
   $( [ -d "$ROOT/ml/results" ] && echo ml/results ) $( [ -d "$ROOT/experiments" ] && echo experiments )
 
 # VM .env: the local .env with cloud overrides. Written with 0600 permissions and never printed.
-grep -vE '^(API_BIND|API_HOST_PORT|TRUST_PROXY|ALLOWED_ORIGINS|APP_ENV)=' "$ROOT/.env" | tr -d '\r' > "$WORK/vm.env"
+grep -vE '^(API_BIND|API_HOST_PORT|TRUST_PROXY|ALLOWED_ORIGINS|APP_ENV|DOCKER_GID)=' "$ROOT/.env" | tr -d '\r' > "$WORK/vm.env"
 {
   echo "API_BIND=0.0.0.0"
   echo "API_HOST_PORT=8000"
@@ -34,6 +34,10 @@ for i in $(seq 1 60); do command -v docker >/dev/null && sudo docker info >/dev/
 sudo mkdir -p /opt/fraudwatch
 sudo tar -xzf /tmp/src.tgz -C /opt/fraudwatch
 sudo install -m 600 /tmp/vm.env /opt/fraudwatch/.env
+# DOCKER_GID is host-specific: the ops-agent joins the group that owns /var/run/docker.sock so it can
+# start Spark and inject the TaskManager fault. Docker Desktop exposes the socket as root (gid 0), a
+# Linux VM as the docker group, so the local value must never be copied here.
+echo "DOCKER_GID=$(stat -c %g /var/run/docker.sock)" | sudo tee -a /opt/fraudwatch/.env >/dev/null
 rm -f /tmp/vm.env /tmp/src.tgz
 cd /opt/fraudwatch
 DC="sudo docker compose --env-file .env -p fraudwatch -f infra/compose/compose.yaml -f infra/compose/compose.streaming.yaml -f infra/gcp/vm/compose.vm.yaml"

@@ -154,6 +154,20 @@ G compute instances stop  "$PIPELINE_VM_NAME" --zone "$PIPELINE_VM_ZONE"        
 G run services update fraudwatch-control --region "$GCP_REGION" --update-env-vars AUTO_WAKE_ENABLED=false   # disable wake
 ```
 
+**Experiments on the VM.** `03-sync-and-build.sh` deploys the `ops-agent` alongside the rest of the
+stack. It strips `DOCKER_GID` out of the copied `.env` and writes the VM's own value
+(`stat -c %g /var/run/docker.sock`) instead — the local value is `0` under Docker Desktop and would
+leave the agent unable to reach the socket on Linux. Check it after a deploy:
+
+```bash
+G compute ssh "$PIPELINE_VM_NAME" --zone "$PIPELINE_VM_ZONE" --command   'sudo docker exec fraudwatch-ops-agent-1 python -c "import urllib.request;print(urllib.request.urlopen(\"http://127.0.0.1:8003/healthz\").read().decode())"'
+```
+
+`"docker": true` means `comparison` and `recovery` can run; `false` means only the experiments that
+need no container control will work, and the others will fail rather than report an invented result.
+Note that every experiment keeps the VM busy, so it also keeps the idle timer from firing — budget the
+credit accordingly.
+
 **Shortened idle test.**
 1. Redeploy the controller with `PIPELINE_IDLE_TIMEOUT_MINUTES=3 PIPELINE_MIN_UPTIME_MINUTES=1`.
 2. Visit, wait for `ready`, stop interacting and confirm `stopping → sleeping` in the history.
