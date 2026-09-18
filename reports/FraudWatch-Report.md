@@ -67,7 +67,7 @@ FraudWatch is built to make both of these visible rather than to hide them.
 
 ## 3. Architecture and actual technology versions
 
-![End-to-end architecture](../docs/figures/lifecycle-timeline.svg)
+![Cloud lifecycle timeline: wake on visit, stop after 45 idle minutes](../docs/figures/lifecycle-timeline.svg)
 
 The five architecture figures rendered on the Lab site (`end-to-end`, `websites`, `model-paths`,
 `engine-paths`, `cloud-lifecycle`) are defined in `packages/ui/src/viz/ArchitectureFigures.tsx` and are
@@ -201,9 +201,9 @@ session, starts a real bounded `ieee_replay` run from `/scenario`, waits for the
 counter to move, and only then photographs the console. They are a record of the deployed system
 actually working, not of an empty shell.
 
-Read off the captured console (session `s_ZAl53i5pLU`, run `r_ecb1798ad9`): **274 scored**, 186 allowed,
-**80 alerts**, 8 reviews queued, 0 late events, throughput 4.6 ev/s, and end-to-end latency
-**p50 110 ms · p95 167 ms · p99 186 ms**. The alert queue carries per-alert scores, the engine (`Flink`)
+Read off the captured console (session `s_A6CL0nG8Pu`, run `r_e3ec03db2a`): **353 scored**, 291 allowed,
+**48 alerts**, 14 reviews queued, 0 late events, throughput 5.9 ev/s, and end-to-end latency
+**p50 110 ms · p95 163 ms · p99 188 ms**. The alert queue carries per-alert scores, the engine (`Flink`)
 and the rules that fired, with `R1_BURST` on many rows. The event-time window panel reads "No closed
 windows yet — a window is emitted once the watermark passes its end", which is the honest state that
 early in a run rather than a fabricated zero.
@@ -399,6 +399,18 @@ testing.
 `fraudwatch-control-00004-dgw`. A request carrying either site's hash-form `Origin` now returns a
 matching `access-control-allow-origin`, and the recapture recorded **0 console errors** — down from 192,
 with the 8 remaining messages being THREE.js deprecation and WebGL performance warnings.
+
+### The two sites stay in sync
+
+Live and Lab are separate Cloud Run services on separate origins, so they share no browser storage. They
+stay consistent because both read one backend, and because Live's **Open in Lab** button mints a
+read-only share link (`POST /sessions/{id}/share`) that carries the session, run and engine across.
+This was checked in a real browser against the deployed sites (`scripts/verify_cross_site.mjs`): Live
+started run `r_febd244cfefcf63a`, and Lab, opened from the share link in a separate tab, showed that same
+run in its landing-page chip and in the "Run selected from Live" banner on `/study`. Both sites logged
+0 console errors.
+
+![Lab receiving the run started on Live](media/screenshots/cross-site-lab-study.png)
 
 ### Cost
 
