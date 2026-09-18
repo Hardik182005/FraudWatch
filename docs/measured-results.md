@@ -74,6 +74,35 @@ delivery lag was 3,842 ms — inside the 5 s bounded-out-of-orderness — so not
 run finished in ~15 s, before the 15–30 s delayed deliveries came due. The run above is longer
 specifically so the delayed path actually fires.
 
+## 2b. Late-event handling through the experiment runner — `exp_20260918_070300_29d804`
+
+The first run measured through `services/ops-agent/` rather than by hand. Queued with
+`POST /api/v1/experiments` (operator token) as `{"kind": "late_events", "params": {"events": 600,
+"rate_eps": 5, "seed": 20260917}}`; the agent claimed it, created run `r_352925ea14c95961`, drove the
+generator and read the result out of PostgreSQL. **Local Docker Compose stack, not GCP.**
+
+| Metric | Value |
+|---|---|
+| Drain | `complete` |
+| Persisted (Flink) | 600 of 600 |
+| Planned late (15-30 s delay, beyond the bound) | **49** |
+| Of those, flagged `late` by Flink | **49** |
+| Planned late but **not** flagged | 0 |
+| Flagged late without being planned | 0 |
+| Delayed 1-4 s (inside the bound) | 59 |
+| Of those, flagged `late` | **0** |
+
+The second half of that table is the part that carries the argument. The generator injects two delay
+classes on purpose: 15-30 s, which is beyond the source's `forBoundedOutOfOrderness(Duration.ofSeconds(5))`,
+and 1-4 s, which is inside it. Every record in the first class was flagged; no record in the second
+class was. Lateness therefore tracks the watermark bound, not merely "arrived out of order" — a
+distinction a raw `late` count alone cannot demonstrate.
+
+The experiment refuses to run when `events / rate_eps` is under 60 s: a shorter run finishes its event
+budget before the 15-30 s delayed records come due, delivers none of them, and would report `late = 0`
+as though the engine had seen nothing late. That is the failure the 150-event run in section 2 hit, and
+it is now a rejected request rather than a misleading zero.
+
 ## 3. Flink fault injection and checkpoint recovery
 
 Job `20d1ba3421afcb29654a0025021b8451`, EXACTLY_ONCE checkpointing every 10 s, retained checkpoints.

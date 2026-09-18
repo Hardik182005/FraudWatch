@@ -134,6 +134,7 @@ local stack is an exact substitute apart from the wake step.
 | **Frontend** | two React 19 + Vite 8 sites sharing `packages/ui` and `packages/contracts`, with `three` / `@react-three/fiber` 3D scenes |
 | **Cloud** | Cloud Run (min-instances 0) plus one Compute Engine VM woken on visit and stopped after 45 idle minutes, on Free Trial credit |
 | **Lifecycle** | measured end to end in production: cold wake to `ready` in **24.9 s**, idle stop fired after an observed **45 min 28 s** without activity, VM `stopping → sleeping` in **42.2 s** ([`docs/measured-results.md`](docs/measured-results.md) §4–§5) |
+| **Late events** | measured through the experiment runner (`exp_20260918_070300_29d804`, 600 records at 5 eps): the **49** records delayed 15-30 s — beyond Flink's 5 s bounded out-of-orderness — were **all 49** flagged `late`, while the **59** delayed 1-4 s, inside the bound, were **0** ([`docs/measured-results.md`](docs/measured-results.md) §2b) |
 | **Engine comparison** | measured on GCP over one identical 500-record stream: **500/500 decision agreement**, max score difference `0.000000000`; e2e p50 **Flink 92 ms vs Spark 3862 ms** ([`docs/measured-results.md`](docs/measured-results.md)). Throughput at saturation is **_not measured yet_** — every figure here is latency at a fixed offered rate |
 
 ---
