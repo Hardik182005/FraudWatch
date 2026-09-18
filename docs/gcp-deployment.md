@@ -154,6 +154,13 @@ G compute instances stop  "$PIPELINE_VM_NAME" --zone "$PIPELINE_VM_ZONE"        
 G run services update fraudwatch-control --region "$GCP_REGION" --update-env-vars AUTO_WAKE_ENABLED=false   # disable wake
 ```
 
+**A VM stopped outside the controller.** Stopping the VM from the Console or `gcloud` (as happened on
+2026-09-18 at 12:04 UTC) does not tell the controller, whose state stays `ready`. Since revision
+`fraudwatch-control-00005-dt5`, `ensure-ready` checks Compute Engine whenever the state claims `ready`.
+If the VM is stopped, it logs `vm_stopped_externally` and runs a normal wake, still subject to the daily
+wake and uptime guards. Verified the same day: `wake-47c4ff93d96f` went from `TERMINATED` to `ready` in
+about 95 s. Prefer the controller's own idle stop over a manual one.
+
 **Experiments on the VM.** `03-sync-and-build.sh` deploys the `ops-agent` alongside the rest of the
 stack. It strips `DOCKER_GID` out of the copied `.env` and writes the VM's own value
 (`stat -c %g /var/run/docker.sock`) instead — the local value is `0` under Docker Desktop and would

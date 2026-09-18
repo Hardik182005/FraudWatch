@@ -308,12 +308,31 @@ async def ensure_ready(request: Request):
     await rate_limit(request, "wake", 10, 600)
     if not AUTO_WAKE:
         return public_view(await read_state())
-    started = {"op": None}
+    started = {"op": None, "reconciled": False}
+    # "ready" is the controller's belief, not a fact: a VM stopped outside the controller (Console, gcloud,
+    # host maintenance) leaves the state at "ready" and every visit would be told the backend is up. When the
+    # state claims ready, ask Compute Engine, and treat a stopped VM as sleeping so this visit wakes it.
+    vm_down = False
+    if (await read_state(max_age_s=2))["state"] == "ready":
+        try:
+            vm_status = (await vm_get())["status"]
+            _vm_cache.update(at=time.monotonic(), status=vm_status)
+            vm_down = vm_status in ("TERMINATED", "STOPPED", "STOPPING", "SUSPENDED", "SUSPENDING")
+        except Exception:
+            vm_down = False   # cannot tell: keep the controller's view rather than guess
 
     def mutate(s: dict):
         now = now_ms()
+        base: dict = {}
         if s["state"] == "ready":
-            return {"last_activity_at": now}
+            if not vm_down:
+                return {"last_activity_at": now}
+            started["reconciled"] = True
+            uptime = s.get("uptime", [])
+            if uptime:   # the real stop time is unknown; closing at now over-counts, which is the safe side for the guard
+                uptime[-1] = uptime[-1] | {"end": now}
+            base = {"state": "sleeping", "stage": None, "vm_internal_ip": None, "idle_token": None, "uptime": uptime}
+            s = s | base
         if s["state"] in STARTING:
             return {"last_activity_at": now}
         if s["state"] == "stopping":
@@ -325,15 +344,17 @@ async def ensure_ready(request: Request):
             return None
         block = _budget_block(s)
         if block:
-            return {"error": block} if s.get("error") != block else None
+            return (base | {"error": block}) if (base or s.get("error") != block) else None
         op = "wake-" + uuid.uuid4().hex[:12]
         started["op"] = op
-        return {"state": "starting_vm", "stage": "requesting VM start", "operation_id": op, "step_token": uuid.uuid4().hex,
+        return base | {"state": "starting_vm", "stage": "requesting VM start", "operation_id": op, "step_token": uuid.uuid4().hex,
                 "wake_requested_at": now, "wake_started_at": now, "last_activity_at": now, "error": None,
                 "probe_run_id": None, "probe_attempts": 0, "pending_wake": False,
                 "wakes": [w for w in s.get("wakes", []) if w > now - 86_400_000] + [now]}
 
     s, changes = await transactional_update(mutate)
+    if started["reconciled"] and changes:
+        await history("vm_stopped_externally", vm_status=_vm_cache["status"])
     if started["op"] and changes:
         await history("wake_requested", operation_id=started["op"])
         await enqueue("/tasks/advance", {"token": s["step_token"]})
