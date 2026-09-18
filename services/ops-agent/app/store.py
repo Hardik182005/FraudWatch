@@ -195,10 +195,16 @@ class Store:
                       count(*) FILTER (WHERE pattern = 'late_delivery') AS planned,
                       count(*) FILTER (WHERE pattern = 'late_delivery' AND late) AS late_planned,
                       count(*) FILTER (WHERE pattern IS DISTINCT FROM 'late_delivery' AND late) AS late_unplanned,
-                      count(*) FILTER (WHERE pattern = 'late_delivery' AND NOT late) AS planned_not_late
+                      count(*) FILTER (WHERE pattern = 'late_delivery' AND NOT late) AS planned_not_late,
+                      count(*) FILTER (WHERE pattern = 'out_of_order') AS out_of_order,
+                      count(*) FILTER (WHERE pattern = 'out_of_order' AND late) AS out_of_order_late
                FROM scored_events WHERE run_id = %s GROUP BY engine""", (run_id,))
+        # 'planned' is the 15-30 s delay, deliberately beyond the watermark bound; 'out_of_order' is the
+        # 1-4 s delay, deliberately inside it. The second class is expected NOT to be late, and counting
+        # it is the only way to show that the bound is what separates them.
         return {r["engine"]: {k: int(r[k]) for k in ("persisted", "late", "planned", "late_planned",
-                                                     "late_unplanned", "planned_not_late")} for r in rows}
+                                                     "late_unplanned", "planned_not_late",
+                                                     "out_of_order", "out_of_order_late")} for r in rows}
 
     async def spark_dropped(self, since: int, until: int) -> int | None:
         row = await self.one(

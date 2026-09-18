@@ -7,9 +7,10 @@ page says so instead of guessing.
 
 How to reproduce each run is in [`benchmark-methodology.md`](benchmark-methodology.md). The runs below
 were orchestrated **manually** (a row inserted into `runs`, then `POST /runs/{id}/start` on the
-generator with the internal token), not through the `services/ops-agent/` experiment runner, which is
-still not implemented. That does not change what was measured — both engines consumed the same Kafka
-records — but it does mean these runs are not yet reproducible by pressing a button in the UI.
+generator with the internal token), not through the `services/ops-agent/` experiment runner. That does
+not change what was measured — both engines consumed the same Kafka records — but it does mean these
+particular runs were not produced by the runner. The runner now exists (`services/ops-agent/`) and has
+executed a `late_events` experiment end to end locally; it has not yet re-run the comparison above.
 
 ## 1. Flink vs Spark parity — run `r_d48339d70bb9ceb4`
 
@@ -151,15 +152,45 @@ stopped the VM instead of leaving it running.
 - While the VM is not ready, the controller returns `503 {"error":{"code":"pipeline_starting_vm", …}}`
   rather than a fabricated empty result.
 
+## 7. Browser-rendered verification of both deployed sites (2026-09-18)
+
+Both sites were loaded at their Cloud Run origins in a real Chromium (Playwright 1.63.0, headless,
+1440x900), not with `curl`. Screenshots are in `reports/media/screenshots/`, walkthrough recordings in
+`reports/media/video/`, and the raw per-page log in `reports/media/video/tour-log.json`.
+
+| Check | Result |
+|---|---|
+| Routes loaded in-browser | 12 of 12 returned HTTP 200 |
+| Live routes | `/`, `/console`, `/scenario`, `/alerts`, `/pipeline` |
+| Lab routes | `/`, `/ca1`, `/ca2`, `/experiments`, `/architecture`, `/system`, `/evidence` |
+| WebGL | a `canvas` element initialised on every 3D hero; the 2D fallback was not needed |
+| Console/page errors during the two walkthroughs | **192** |
+
+**Defect found: every API call from both deployed sites is blocked by CORS.** All 192 errors are the
+same failure — 96 `net::ERR_FAILED` plus 96 `Access to fetch at
+'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/…' has been blocked by CORS
+policy: No 'Access-Control-Allow-Origin' header is present`. The controller's `ALLOWED_ORIGINS` lists
+the project-number host form (`fraudwatch-live-997216389793.asia-south1.run.app`), while a browser
+actually loads the sites from the hash form (`fraudwatch-live-2djxmgtj5a-el.a.run.app`). Both host
+forms serve the sites, the origin check is an exact string match, so the hash form is rejected.
+
+This is exactly the class of defect the `curl` checks in §6 could not see: every route returned 200
+there because the HTML and assets are served fine — it is only the browser's cross-origin check on the
+subsequent API calls that fails. **The screenshots and recordings therefore show both sites rendering
+correctly with their data panels empty or in an error state.** They are an honest record of the
+deployed state on 2026-09-18, not a demonstration of the pipeline serving data. The fix is to add the
+hash-form origins to `ALLOWED_ORIGINS` on `fraudwatch-control`; it was not applied because the gcloud
+credentials for `sahildeshmukh1616` had expired at the time of capture.
+
 ## What is still not measured
 
 - Sustained throughput for either engine.
 - p99 latency, and latency under backpressure or at saturation.
 - Spark with a trigger interval other than 1000 ms.
-- Any comparison run through the `services/ops-agent/` experiment runner (not implemented).
-- Browser-rendered verification of both deployed sites at the Cloud Run origin (checked with `curl`
-  only so far — WebGL initialisation, the SSE stream and the browser console are unverified there).
-  The Playwright suite does render both apps in a real Chromium, but against the local
-  `npm run preview` origin. An attempt to drive Chrome directly on 2026-09-18 failed because the
-  browser extension was not connected.
+- Any comparison run through the `services/ops-agent/` experiment runner. The runner is implemented
+  and has completed a `late_events` experiment locally, but the comparison in §1 predates it and has
+  not been reproduced through it.
+- Live pipeline behaviour as seen from a browser at the Cloud Run origin. §7 confirms the sites render,
+  but the CORS defect recorded there meant no API call succeeded, so the console, alert feed and
+  pipeline panels were never observed carrying real data in a browser.
 - Why the drain call in §5 reported a failure while `active-work` reported nothing in flight.

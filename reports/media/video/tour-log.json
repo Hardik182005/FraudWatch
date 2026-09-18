@@ -1,0 +1,1031 @@
+{
+  "capturedAt": "2026-09-18T07:16:33.565Z",
+  "routes": [
+    {
+      "tour": "live-walkthrough",
+      "url": "https://fraudwatch-live-2djxmgtj5a-el.a.run.app/",
+      "status": 200
+    },
+    {
+      "tour": "live-walkthrough",
+      "url": "https://fraudwatch-live-2djxmgtj5a-el.a.run.app/console",
+      "status": 200
+    },
+    {
+      "tour": "live-walkthrough",
+      "url": "https://fraudwatch-live-2djxmgtj5a-el.a.run.app/scenario",
+      "status": 200
+    },
+    {
+      "tour": "live-walkthrough",
+      "url": "https://fraudwatch-live-2djxmgtj5a-el.a.run.app/alerts",
+      "status": 200
+    },
+    {
+      "tour": "live-walkthrough",
+      "url": "https://fraudwatch-live-2djxmgtj5a-el.a.run.app/pipeline",
+      "status": 200
+    },
+    {
+      "tour": "lab-walkthrough",
+      "url": "https://fraudwatch-lab-2djxmgtj5a-el.a.run.app/",
+      "status": 200
+    },
+    {
+      "tour": "lab-walkthrough",
+      "url": "https://fraudwatch-lab-2djxmgtj5a-el.a.run.app/ca1",
+      "status": 200
+    },
+    {
+      "tour": "lab-walkthrough",
+      "url": "https://fraudwatch-lab-2djxmgtj5a-el.a.run.app/ca2",
+      "status": 200
+    },
+    {
+      "tour": "lab-walkthrough",
+      "url": "https://fraudwatch-lab-2djxmgtj5a-el.a.run.app/experiments",
+      "status": 200
+    },
+    {
+      "tour": "lab-walkthrough",
+      "url": "https://fraudwatch-lab-2djxmgtj5a-el.a.run.app/architecture",
+      "status": 200
+    },
+    {
+      "tour": "lab-walkthrough",
+      "url": "https://fraudwatch-lab-2djxmgtj5a-el.a.run.app/system",
+      "status": 200
+    },
+    {
+      "tour": "lab-walkthrough",
+      "url": "https://fraudwatch-lab-2djxmgtj5a-el.a.run.app/evidence",
+      "status": 200
+    }
+  ],
+  "problems": [
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/architecture' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/architecture' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/architecture' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-live-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "live-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/model' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/model/results' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/model' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/model/results' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/model' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/model/results' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/experiments' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/experiments' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/experiments' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/architecture' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/architecture' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/architecture' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/evidence' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/model' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/evidence' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/model' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/config' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/model' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/health' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Access to fetch at 'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/evidence' from origin 'https://fraudwatch-lab-2djxmgtj5a-el.a.run.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+    },
+    {
+      "tour": "lab-walkthrough",
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    }
+  ],
+  "videos": [
+    "live-walkthrough.webm",
+    "lab-walkthrough.webm"
+  ]
+}

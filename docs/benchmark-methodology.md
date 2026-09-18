@@ -10,11 +10,11 @@ p95 5695 ms at a 1000 ms trigger.
 
 Two caveats that keep the rest of this document necessary:
 
-1. `services/ops-agent/app/` is still an **empty directory**. The experiment runner that
-   `POST /api/v1/experiments` is specified against does not exist, so the run above was orchestrated by
-   hand (insert a `runs` row, then `POST /runs/{id}/start` on the generator). It is evidence, but it is
-   not yet a button in the UI, and `comparison`, `late_events` and `recovery` experiments cannot be
-   launched from the API.
+1. The run above was orchestrated **by hand** (insert a `runs` row, then `POST /runs/{id}/start` on the
+   generator), because it predates the experiment runner. `services/ops-agent/app/` now implements
+   `comparison`, `late_events` and `recovery` against the section 7.7 contract, and
+   `POST /api/v1/experiments` executes them, but the figures above have not been re-measured through
+   it — so they remain evidence rather than a button in the UI.
 2. The comparison measures **latency at a fixed low arrival rate** (10 events/second), not throughput.
    Sustained events/second at saturation, p99 latency, and behaviour under backpressure remain:
 
@@ -204,8 +204,9 @@ this", never as zero.
 
 ## 6. To make measurements possible
 
-1. Implement the experiment runner in `services/ops-agent/app/` to the `contracts.md` section 7.7
-   contract (`comparison`, `late_events`, `recovery`), and set `OPS_AGENT_URL`.
+1. Use the experiment runner in `services/ops-agent/app/`, which implements the `contracts.md`
+   section 7.7 contract (`comparison`, `late_events`, `recovery`); set `OPS_AGENT_URL` and mount the
+   Docker socket so it can start Spark and inject the TaskManager fault.
 2. Start the `spark` profile so both engines consume the same topic.
 3. Run a warm-up, then repeats, and record every item in section 3 alongside the result.
 4. Store the output as evidence with `provenance: "measured"` (`GET /evidence` distinguishes

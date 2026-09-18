@@ -125,10 +125,12 @@ Open the Lab site: `/study`, then `/ca1` and `/ca2`, `/architecture`, `/evidence
 
 On `/experiments`, be direct:
 
-> This is where the Flink-versus-Spark comparison belongs, and **there are no numbers in it.** The
-> experiment runner — `services/ops-agent/app/` — is an empty directory in this repository. So there is
-> no measured latency or throughput figure anywhere in this project, and I am not going to quote one.
-> `docs/benchmark-methodology.md` sets out what a fair comparison would require: the same Kafka topic,
+> This is where the Flink-versus-Spark comparison belongs. The experiment runner —
+> `services/ops-agent/app/` — claims a queued experiment, drives the generator and measures the result
+> out of PostgreSQL, so anything shown here is a real run with a run id behind it. Throughput at
+> saturation is still **`_not measured yet_`**: every run so far was rate-limited, so what you see is
+> latency at a fixed offered rate, and I am not going to quote a throughput number.
+> `docs/benchmark-methodology.md` sets out what a fair comparison requires: the same Kafka topic,
 > the same producer-assigned event ids, the same scoring service and artifact, the same 5-second
 > watermark and 60-second window, a discarded warm-up run, repeats, and the offered rate reported
 > separately from the processed rate.

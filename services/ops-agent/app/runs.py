@@ -85,9 +85,17 @@ class Runner:
         """Wait for persisted results to reach the expected total, or to stop growing.
 
         Returns the reason the wait ended: ``complete`` (every event persisted by every engine),
-        ``stable`` (nothing new for ``stable_s``) or ``timeout``. The caller records this verbatim —
-        a run that drained by timeout is not the same measurement as one that drained completely, and
-        the results must say which it was.
+        ``stable`` (results arrived and then stopped growing) or ``timeout``. The caller records this
+        verbatim — a run that drained by timeout is not the same measurement as one that drained
+        completely, and the results must say which it was.
+
+        The stability rule deliberately does **not** apply while the persisted count is still zero.
+        A cold engine, a Spark micro-batch that has not reached its first trigger, or a result
+        consumer that has not yet committed its first batch all look identical to "growth has
+        stopped" if you start the clock at zero, and the wait then ends before a single record has
+        landed — reporting ``stable`` with ``persisted = 0`` for a run whose records arrive moments
+        later. Zero therefore falls through to the deadline, so the recorded reason is ``timeout``:
+        nothing persisted within the budget, which is what actually happened.
         """
         target = expected * max(engines, 1)
         deadline = now_ms() + int(timeout_s * 1000)
@@ -100,7 +108,7 @@ class Runner:
                 return "complete"
             if count != last_count:
                 last_count, last_change = count, now_ms()
-            elif now_ms() - last_change >= stable_s * 1000:
+            elif count > 0 and now_ms() - last_change >= stable_s * 1000:
                 return "stable"
             if now_ms() > deadline:
                 return "timeout"

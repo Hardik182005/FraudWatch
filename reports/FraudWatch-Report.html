@@ -1,0 +1,856 @@
+<!doctype html><html><head><meta charset="utf-8"><title>FraudWatch Report</title><style>
+@page { size: A4; margin: 18mm 15mm; }
+body { font-family: "Segoe UI", Arial, sans-serif; font-size: 10.5pt; line-height: 1.5; color: #14181f; }
+h1 { font-size: 21pt; color: #0b1e38; border-bottom: 3px solid #E6526F; padding-bottom: 6px; }
+h2 { font-size: 15pt; color: #0b1e38; margin-top: 26px; border-bottom: 1px solid #cdd6e2; padding-bottom: 4px; page-break-after: avoid; }
+h3 { font-size: 12pt; color: #1d3557; margin-top: 18px; page-break-after: avoid; }
+table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 9.5pt; page-break-inside: avoid; }
+th, td { border: 1px solid #c8d2df; padding: 5px 8px; text-align: left; vertical-align: top; }
+th { background: #eef2f7; }
+code { background: #f1f4f8; padding: 1px 4px; border-radius: 3px; font-size: 9pt; }
+img { max-width: 100%; border: 1px solid #cdd6e2; border-radius: 4px; page-break-inside: avoid; }
+td img { border: none; max-width: 190px; }
+hr { border: none; border-top: 1px solid #cdd6e2; margin: 22px 0; }
+blockquote { border-left: 3px solid #E6526F; margin-left: 0; padding-left: 12px; color: #40506a; }
+</style></head><body><h1 id="fraudwatch-real-time-fraud-detection-using-big-data-analytics-and-machine-learning">FraudWatch — Real-Time Fraud Detection using Big Data Analytics and Machine Learning</h1>
+<p><strong>Draft report — 2026-09-18.</strong> This draft is written against the project's own evidence files. It is
+labelled a draft because the final institutional template has not been supplied; when it arrives the
+content below should be re-fitted to that template rather than rewritten from memory. Every number in
+this report is traceable to a file in the repository, and each section says plainly where a claim
+comes from and what was <em>not</em> measured.</p>
+<hr />
+<h2 id="1-cover">1. Cover</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Project title</strong></td>
+<td>FraudWatch — Real-Time Fraud Detection using Big Data Analytics and Machine Learning</td>
+</tr>
+<tr>
+<td><strong>Group</strong></td>
+<td>Group 4</td>
+</tr>
+<tr>
+<td><strong>Members</strong></td>
+<td>Hardik Hinduja · Avinash Gehi · Siddharth Dey · Sahil Deshmukh</td>
+</tr>
+<tr>
+<td><strong>Submission date</strong></td>
+<td>Monday, 21 September 2026</td>
+</tr>
+<tr>
+<td><strong>Deployed sites</strong></td>
+<td>FraudWatch Live · FraudWatch Lab (§8)</td>
+</tr>
+<tr>
+<td><strong>Repository</strong></td>
+<td>monorepo — apps, services, packages, infra, ml, docs, reports</td>
+</tr>
+<tr>
+<td><strong>Report status</strong></td>
+<td>Draft, evidence-based; see §10 for the open items</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-abstract-problem-statement-objectives-ca1ca2-mapping">2. Abstract, problem statement, objectives, CA1/CA2 mapping</h2>
+<h3 id="abstract">Abstract</h3>
+<p>FraudWatch is a working fraud-detection system, not a mockup. Transactions from the IEEE-CIS Fraud
+Detection dataset are replayed onto Apache Kafka, enriched with per-account streaming features by
+Apache Flink and Apache Spark Structured Streaming, scored by a LightGBM model behind one shared HTTP
+scoring service, persisted to PostgreSQL, and streamed to two React websites. The whole backend runs
+on a single Google Compute Engine VM that wakes when a visitor arrives and stops itself after 45 idle
+minutes, so the deployment stays inside Google Cloud Free Trial credit. The system has been exercised
+end to end on GCP: 500 records processed by both engines with bit-identical scores, a measured late
+event path, a real TaskManager kill with checkpoint recovery, and a full sleep/wake/sleep lifecycle.</p>
+<h3 id="problem-statement">Problem statement</h3>
+<p>Card fraud must be caught while a transaction is still in flight, which makes it a streaming problem
+rather than a batch problem. Two properties make it hard. First, fraud is rare: in the held-out test
+split used here only 3.48% of transactions are fraudulent, so accuracy is a meaningless headline and
+precision/recall trade-offs dominate. Second, the arrival order is not guaranteed: events can arrive
+late or out of order, and a system that silently drops them reports a cleaner result than it earned.
+FraudWatch is built to make both of these visible rather than to hide them.</p>
+<h3 id="objectives">Objectives</h3>
+<ol>
+<li>Replay a real, public fraud dataset through a real Apache streaming stack — no simulated brokers.</li>
+<li>Score every event with a trained gradient-boosting model and explain each decision with TreeSHAP.</li>
+<li>Report evaluation honestly: thresholds chosen on validation, held-out test reported separately.</li>
+<li>Compare Flink's record-at-a-time model against Spark's micro-batch model on identical input.</li>
+<li>Demonstrate event-time correctness (watermarks, late side output) and fault recovery (checkpoints).</li>
+<li>Deploy both websites publicly at zero out-of-pocket cost, with no dependency on a student's laptop.</li>
+</ol>
+<h3 id="ca1-ca2-mapping">CA1 / CA2 mapping</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>CA1</th>
+<th>CA2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Focus</strong></td>
+<td>Real-time fraud detection</td>
+<td>True streaming vs micro-batch</td>
+</tr>
+<tr>
+<td><strong>Question</strong></td>
+<td>Can a model score transactions as they arrive, and how good is it really?</td>
+<td>Does the engine choice change the answer, the latency, or both?</td>
+</tr>
+<tr>
+<td><strong>Implementation</strong></td>
+<td>Kafka → Flink → scoring service → PostgreSQL → Live console</td>
+<td>The same input fanned out to Flink <em>and</em> Spark, results compared row by row</td>
+</tr>
+<tr>
+<td><strong>Evidence</strong></td>
+<td><code>ml/artifacts/fw-ieee-stream-1.1.0/evaluation.json</code>, Live site §5</td>
+<td>Parity/late/recovery runs in <code>docs/measured-results.md</code>, Lab site §6–§7</td>
+</tr>
+<tr>
+<td><strong>Site</strong></td>
+<td>FraudWatch Live (<code>/console</code>, <code>/alerts</code>, <code>/scenario</code>, <code>/pipeline</code>)</td>
+<td>FraudWatch Lab (<code>/ca1</code>, <code>/ca2</code>, <code>/experiments</code>, <code>/architecture</code>, <code>/system</code>, <code>/evidence</code>)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-architecture-and-actual-technology-versions">3. Architecture and actual technology versions</h2>
+<p><img alt="End-to-end architecture" src="../docs/figures/lifecycle-timeline.svg" /></p>
+<p>The five architecture figures rendered on the Lab site (<code>end-to-end</code>, <code>websites</code>, <code>model-paths</code>,
+<code>engine-paths</code>, <code>cloud-lifecycle</code>) are defined in <code>packages/ui/src/viz/ArchitectureFigures.tsx</code> and are
+generated from the same source of truth as the running system.</p>
+<p><strong>Data path.</strong> Generator → Kafka topic <code>fraudwatch.transactions</code> → Flink and/or Spark → shared scoring
+service (<code>:8001</code>) → Kafka result topics → result consumer → PostgreSQL → FastAPI <code>/api/v1</code> → Server-Sent
+Events → both React sites.</p>
+<p>Every version below was read from the repository's build and compose files, not assumed.</p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Component</th>
+<th>Version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Messaging</td>
+<td>Apache Kafka (KRaft, single node)</td>
+<td>4.1.2</td>
+</tr>
+<tr>
+<td>True streaming</td>
+<td>Apache Flink</td>
+<td>1.20.5</td>
+</tr>
+<tr>
+<td>Micro-batch</td>
+<td>Apache Spark Structured Streaming</td>
+<td>3.5.9</td>
+</tr>
+<tr>
+<td>Runtime (Flink job)</td>
+<td>Java</td>
+<td>17</td>
+</tr>
+<tr>
+<td>Model</td>
+<td>LightGBM</td>
+<td>4.7.0</td>
+</tr>
+<tr>
+<td>Storage</td>
+<td>PostgreSQL</td>
+<td>17.11</td>
+</tr>
+<tr>
+<td>API / services</td>
+<td>Python + FastAPI</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Frontend</td>
+<td>React</td>
+<td>19.3.0</td>
+</tr>
+<tr>
+<td>Frontend</td>
+<td>TypeScript</td>
+<td>7.0.2</td>
+</tr>
+<tr>
+<td>Frontend build</td>
+<td>Vite</td>
+<td>8</td>
+</tr>
+<tr>
+<td>3D</td>
+<td>three / @react-three/fiber</td>
+<td>0.186.0 / 9.7.0</td>
+</tr>
+<tr>
+<td>Browser tests</td>
+<td>Playwright (Chromium)</td>
+<td>1.63.0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Versioned contracts.</strong> Feature spec <code>fs-1.1</code> (15 stream-computable features), ruleset <code>rules-1.1</code>,
+policy <code>policy-1.0</code>, model artifact <code>fw-ieee-stream-1.1.0</code>. Both engines load the same three, which is
+what makes the CA2 comparison a comparison of engines rather than of configurations.</p>
+<hr />
+<h2 id="4-dataset-preprocessing-model-design-evaluation-limitations">4. Dataset, preprocessing, model design, evaluation, limitations</h2>
+<h3 id="provenance">Provenance</h3>
+<p>IEEE-CIS Fraud Detection (Kaggle competition <code>ieee-fraud-detection</code>), contributed by <strong>Vesta
+Corporation</strong>. It is used under the competition's terms; the raw CSV files are <strong>not</strong> committed to the
+repository and are <strong>not</strong> shipped in the frontend bundle or any downloadable archive.</p>
+<p><strong>Units.</strong> <code>TransactionAmt</code> is reported by the source as a transaction amount in an <strong>unspecified
+currency unit</strong>. This report therefore calls it "transaction amount" and never relabels it as INR or
+any other currency. An earlier internal field name <code>amount_inr</code> was retired for exactly this reason.</p>
+<h3 id="preprocessing-and-feature-design">Preprocessing and feature design</h3>
+<p>Only features computable <em>from a stream</em> were used — 15 in total (<code>fs-1.1</code>). A feature that needs the
+full dataset, or the future, cannot be computed when the transaction is actually in flight, so
+including one would inflate the score and break at runtime. Features combine per-event attributes with
+per-account state held in Flink's keyed <code>ValueState</code> (and Spark's <code>GroupState</code>), such as recent
+transaction counts and deviation from the account's own recent behaviour.</p>
+<h3 id="model-design">Model design</h3>
+<ul>
+<li><strong>Main model:</strong> LightGBM gradient-boosted trees, artifact <code>fw-ieee-stream-1.1.0</code>.</li>
+<li><strong>Baseline:</strong> logistic regression, trained and evaluated on the identical split.</li>
+<li><strong>Explanation:</strong> per-event TreeSHAP (<code>pred_contrib=True</code>), contributions in <strong>log-odds</strong>, not
+  probabilities.</li>
+<li><strong>Decision layer:</strong> <code>rules-1.1</code> (deterministic rules) and <code>policy-1.0</code> (alert / review / allow bands).</li>
+</ul>
+<h3 id="evaluation-held-out-test-split-n-88581">Evaluation — held-out test split (n = 88,581)</h3>
+<p>Thresholds were selected on the <strong>validation</strong> split and then applied unchanged to the held-out test
+split, which was scored once. Alert threshold <code>0.10477</code>, review threshold <code>0.06955</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>LightGBM</th>
+<th>Logistic-regression baseline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>PR-AUC</strong></td>
+<td><strong>0.1375</strong></td>
+<td>0.0961</td>
+</tr>
+<tr>
+<td>ROC-AUC</td>
+<td>0.7817</td>
+<td>0.7603</td>
+</tr>
+<tr>
+<td>Precision</td>
+<td>0.1508</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Recall</td>
+<td>0.3675</td>
+<td>—</td>
+</tr>
+<tr>
+<td>F1</td>
+<td>0.2138</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Accuracy</td>
+<td>0.9059</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Brier score</td>
+<td>0.0321</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Expected calibration error</td>
+<td>0.0055</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>Confusion matrix: TN 79,116 · FP 6,382 · FN 1,950 · TP 1,133. Prevalence in the test split: <strong>3.48%</strong>.</p>
+<p>Policy outcome over the test split: alert 7,515 (8.48%), review 3,901 (4.40%), allow 77,165 (87.11%),
+combined flagged recall <strong>0.4788</strong>. Rule firings: <code>R1_BURST</code> 625, <code>R2_PROFILE_DEVIATION</code> 497,
+<code>R3_TEST_THEN_LARGE</code> <strong>0</strong>.</p>
+<h3 id="reading-these-numbers-honestly">Reading these numbers honestly</h3>
+<p>Accuracy of 0.9059 looks strong and means almost nothing: always predicting "not fraud" would score
+about 0.965. The metrics that matter are PR-AUC 0.1375 against a 3.48% base rate, and a precision of
+0.1508 at recall 0.3675 — roughly one in seven alerts is genuine fraud, and about two-thirds of fraud
+at that threshold is missed by the alert band alone. The model beats the logistic-regression baseline
+on PR-AUC by a clear margin (0.1375 vs 0.0961), which is the honest claim: it is better than the
+baseline, not that it is production-grade.</p>
+<p><code>R3_TEST_THEN_LARGE</code> fired <strong>zero</strong> times. That is reported as zero, not omitted. It means either the
+pattern is absent from this split or the rule's thresholds are too tight for it; which one has not
+been determined.</p>
+<p>The model outputs are <strong>model scores</strong>, not calibrated probabilities, except where calibration is
+explicitly shown (Brier 0.0321, ECE 0.0055 are reported for the test split only).</p>
+<h3 id="limitations">Limitations</h3>
+<ul>
+<li>Trained on one public dataset from one contributor; no claim of generalisation to other issuers.</li>
+<li>The 15-feature stream-computable subset is deliberately smaller than what a batch model could use.</li>
+<li>No temporal drift analysis, no cost-sensitive threshold optimisation against real investigation cost.</li>
+<li>The dataset's own labels are taken as ground truth; label noise is not modelled.</li>
+</ul>
+<hr />
+<h2 id="5-ca1-implementation-and-screenshots">5. CA1 implementation and screenshots</h2>
+<p>FraudWatch Live is the operations console: a landing page with an interactive 3D hero plus <code>/console</code>,
+<code>/alerts</code>, <code>/scenario</code> and <code>/pipeline</code>. A visitor starts a <strong>bounded</strong> preset scenario, watches events
+being scored in real time, and opens any alert to see its TreeSHAP contributions and the rules that
+fired.</p>
+<table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Purpose</th>
+<th>Screenshot</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/</code></td>
+<td>Landing page, interactive 3D hero</td>
+<td><code>media/screenshots/live-landing.png</code></td>
+</tr>
+<tr>
+<td><code>/console</code></td>
+<td>Live scored-event stream</td>
+<td><code>media/screenshots/live-console.png</code></td>
+</tr>
+<tr>
+<td><code>/scenario</code></td>
+<td>Bounded preset scenario controls</td>
+<td><code>media/screenshots/live-scenario.png</code></td>
+</tr>
+<tr>
+<td><code>/alerts</code></td>
+<td>Alert list and per-alert evidence</td>
+<td><code>media/screenshots/live-alerts.png</code></td>
+</tr>
+<tr>
+<td><code>/pipeline</code></td>
+<td>3D pipeline view</td>
+<td><code>media/screenshots/live-pipeline.png</code></td>
+</tr>
+<tr>
+<td><code>/</code> (mobile)</td>
+<td>Pixel 7 viewport</td>
+<td><code>media/screenshots/live-landing-mobile.png</code></td>
+</tr>
+</tbody>
+</table>
+<p><img alt="FraudWatch Live landing page" src="media/screenshots/live-landing.png" /></p>
+<p><img alt="FraudWatch Live console" src="media/screenshots/live-console.png" /></p>
+<p><strong>What these screenshots do and do not show.</strong> They were captured on 2026-09-18 from the deployed Cloud
+Run origin in a real headless Chromium, so they are a true record of what the deployed sites render.
+They show the data panels <strong>empty or in an error state</strong>, because of the CORS defect described in §8:
+every API call from the deployed sites was blocked at capture time. They are therefore evidence that
+the sites deploy, route and render — including WebGL — and not evidence of the pipeline serving live
+data. Screenshots of the console carrying real data should be recaptured once that defect is fixed.</p>
+<p>A walkthrough recording of the whole site is at <code>media/video/live-walkthrough.webm</code>, with the raw
+per-route log in <code>media/video/tour-log.json</code>.</p>
+<hr />
+<h2 id="6-ca2-flink-implementation-and-spark-comparison">6. CA2 — Flink implementation and Spark comparison</h2>
+<h3 id="flink-event-time-state-checkpoints">Flink: event time, state, checkpoints</h3>
+<ul>
+<li><strong>Event time, not processing time.</strong> Watermarks use
+  <code>forBoundedOutOfOrderness(5 s)</code>: the pipeline tolerates 5 seconds of out-of-order arrival before it
+  considers a window closeable.</li>
+<li><strong>Windows.</strong> 60-second tumbling windows with <code>allowedLateness(ZERO)</code>.</li>
+<li><strong>Late events are routed, not dropped.</strong> Anything arriving after the watermark has passed its window
+  goes to a <strong>late side output</strong> and is persisted with a <code>late</code> flag. This is the design decision that
+  makes §7's late-event measurement possible: a system that dropped these events would simply report a
+  cleaner result.</li>
+<li><strong>State.</strong> Per-account keyed <code>ValueState</code> holds the rolling features; Spark's equivalent is
+  <code>GroupState</code> with an explicit watermark check.</li>
+<li><strong>Checkpoints.</strong> <code>EXACTLY_ONCE</code> mode, 10-second interval, <code>RETAIN_ON_CANCELLATION</code>, and <code>submit.sh</code>
+  restores from the newest retained checkpoint on restart.</li>
+</ul>
+<h3 id="spark-the-deliberate-contrast">Spark: the deliberate contrast</h3>
+<p>Spark Structured Streaming consumes the same Kafka topic with a <strong>1000 ms trigger interval</strong> and
+<code>applyInPandasWithState</code>. It loads the identical model artifact, feature spec, ruleset and policy. The
+only difference between the two paths is the execution model itself — which is the point of CA2.</p>
+<h3 id="result-the-engines-agree-exactly-and-differ-enormously-in-latency">Result: the engines agree exactly, and differ enormously in latency</h3>
+<p>From parity run <code>r_d48339d70bb9ceb4</code> on GCP (500 IEEE-CIS replay records, scenario <code>replay</code>, seed
+<code>20260917</code>, 10 events/second, both engines):</p>
+<table>
+<thead>
+<tr>
+<th>Engine</th>
+<th>Rows persisted</th>
+<th>Distinct events</th>
+<th>Late</th>
+<th>Alerts</th>
+<th>e2e p50</th>
+<th>e2e p95</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Flink 1.20</td>
+<td>500</td>
+<td>500</td>
+<td>0</td>
+<td>69</td>
+<td><strong>92 ms</strong></td>
+<td><strong>155 ms</strong></td>
+</tr>
+<tr>
+<td>Spark 3.5</td>
+<td>500</td>
+<td>500</td>
+<td>0</td>
+<td>69</td>
+<td><strong>3,862 ms</strong></td>
+<td><strong>5,695 ms</strong></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Agreement metric</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Events present in both engines</td>
+<td>500</td>
+</tr>
+<tr>
+<td>Same <code>action</code></td>
+<td><strong>500</strong></td>
+</tr>
+<tr>
+<td>Different <code>action</code></td>
+<td><strong>0</strong></td>
+</tr>
+<tr>
+<td>Max absolute score difference</td>
+<td><strong>0.000000000</strong></td>
+</tr>
+<tr>
+<td>Flink-only / Spark-only events</td>
+<td>0 / 0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Interpretation.</strong> The engines are in exact agreement — bit-identical scores on all 500 events — so
+the comparison genuinely isolates the engine. The ~42× latency difference is <em>architectural, not a
+quality difference</em>: Flink scores each record on arrival, while under a 1 s trigger a Spark event waits
+for the next batch boundary before it is even picked up. A p50 of 3,862 ms is close to what a 1 s
+trigger plus batch scheduling and scoring overhead predicts. Lowering Spark's trigger would narrow the
+gap; that variant was <strong>not</strong> run, so this report does not claim Spark is inherently 42× slower — it
+claims that <em>at a 1 s trigger</em> it is.</p>
+<p>Screenshots: <code>media/screenshots/lab-ca2.png</code>, <code>media/screenshots/lab-architecture.png</code>. Recording:
+<code>media/video/lab-walkthrough.webm</code>.</p>
+<hr />
+<h2 id="7-experiment-methodology-measurements-and-interpretation">7. Experiment methodology, measurements, and interpretation</h2>
+<p>Full protocol: <code>docs/benchmark-methodology.md</code>. Raw evidence: <code>docs/measured-results.md</code>. Every run
+below executed on the deployed GCP stack (VM <code>fraudwatch-pipeline</code>, <code>asia-south1-a</code>) and every number
+was read back out of PostgreSQL or the Flink REST API.</p>
+<p><strong>Fairness controls.</strong> Both engines consume the <em>same</em> Kafka records from one generator run, with the
+same seed, the same model artifact, the same <code>fs-1.1</code> feature spec and the same <code>rules-1.1</code>/<code>policy-1.0</code>
+decision layer. Scores are compared row by row on <code>event_id</code>, so a coverage gap in either engine would
+appear as a non-zero <code>only_flink</code>/<code>only_spark</code> count rather than being averaged away.</p>
+<h3 id="71-late-event-handling-run-r_b17d3ca811cf1137">7.1 Late-event handling — run <code>r_b17d3ca811cf1137</code></h3>
+<p>Scenario <code>late_events</code>, 600 records at 5 events/second (~120 s), Flink only.</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Persisted / distinct</td>
+<td>600 / 600</td>
+</tr>
+<tr>
+<td>Flagged <code>late</code></td>
+<td><strong>49</strong></td>
+</tr>
+<tr>
+<td>Duplicates / collapsed redeliveries</td>
+<td>0 / 0</td>
+</tr>
+<tr>
+<td>Delivery lag p50 / p95 / max</td>
+<td>1 ms / 20,951 ms / 29,866 ms</td>
+</tr>
+<tr>
+<td>Delivered &gt; 10 s after event time</td>
+<td><strong>49</strong></td>
+</tr>
+<tr>
+<td>e2e min / p50 / p95 / max</td>
+<td>25 / 100 / 149 / 165 ms</td>
+</tr>
+</tbody>
+</table>
+<p>The 49 events flagged <code>late</code> are a <strong>1:1 match</strong> with the 49 delivered more than 10 s after their event
+time. That is the expected result for a 5 s bounded-out-of-orderness plus a 60 s window with
+<code>allowedLateness(ZERO)</code>: late events are marked, never silently dropped and never double-counted.</p>
+<p><strong>A negative result, reported.</strong> An earlier 150-event run at 10 eps produced <code>late = 0</code>. That was not a
+failure of the late path: its maximum delivery lag was 3,842 ms — inside the 5 s bound — and the run
+finished in ~15 s, before the 15–30 s delayed deliveries came due. The longer run above was designed
+specifically so the delayed path actually fires.</p>
+<h3 id="72-fault-injection-and-checkpoint-recovery">7.2 Fault injection and checkpoint recovery</h3>
+<p>Flink job <code>20d1ba3421afcb29654a0025021b8451</code>, EXACTLY_ONCE checkpointing every 10 s.</p>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Time (UTC)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TaskManager killed</td>
+<td>18:55:12</td>
+</tr>
+<tr>
+<td>Job observed <code>RESTARTING</code></td>
+<td>~18:56:12 (after the ~60 s heartbeat timeout)</td>
+</tr>
+<tr>
+<td>TaskManager back up</td>
+<td>18:56:04</td>
+</tr>
+<tr>
+<td>Job <code>RUNNING</code> again</td>
+<td>after restart</td>
+</tr>
+</tbody>
+</table>
+<p><code>counts.restored = 4</code>, restored from <strong><code>chk-80</code></strong>
+(<code>file:/opt/flink/checkpoints/20d1ba3421afcb29654a0025021b8451/chk-80</code>). Six checkpoints failed during
+the outage window, which is expected while no TaskManager is available. <strong>No event loss and no
+duplicate persisted rows across the failure.</strong></p>
+<p>One honest detail worth knowing for the viva: checking the job state immediately after the kill shows
+<code>RUNNING</code> with <code>restored = 0</code>. That is the heartbeat interval not having elapsed, <strong>not</strong> the job
+surviving the kill.</p>
+<h3 id="73-lifecycle-wake-and-idle-shutdown">7.3 Lifecycle: wake and idle shutdown</h3>
+<p>Wake <code>wake-39bed768b949</code>, cold from <code>sleeping</code>: <code>wake_requested</code> → <code>vm_running</code> (+0.9 s) →
+<code>services_up</code> (+10.5 s) → <code>ready</code> (+13.6 s) — <strong>~25 s total</strong>. An earlier <em>failed</em> wake,
+<code>wake-362778af7f70</code>, is preserved in the history with <code>wake_failed</code> followed by <code>vm_stop_after_failure</code>:
+the failure path stops the VM rather than leaving it running and billing, and the history is not
+rewritten to hide it.</p>
+<p>Idle shutdown <code>stop-0cdb13d13b32</code>, measured at <strong>production</strong> settings (45-minute idle timeout, not a
+shortened test value): last activity 19:08:15 → <code>idle_shutdown_started</code> 19:53:43 = <strong>45 min 28 s</strong>,
+then <code>sleeping</code> at 19:54:26 — VM stop took <strong>42.2 s</strong>.</p>
+<p>One unexplained detail is recorded rather than smoothed over: the drain call reported
+<code>failed: ["r_5cf6b929471a5adc"]</code> while the subsequent <code>/internal/active-work</code> check reported
+<code>undrained_runs: 0</code>, so shutdown proceeded. The events are <em>consistent with</em> a run that had already
+finished, but they do not prove it, and the drain failure is not explained by the recorded history.</p>
+<h3 id="74-what-was-deliberately-not-measured">7.4 What was deliberately not measured</h3>
+<p>Sustained throughput at saturation for either engine; p99 latency; latency under backpressure;
+CPU/memory cost per event; Spark at any trigger interval other than 1000 ms. The parity run was
+rate-limited to 10 events/second by the generator, so <strong>it measures latency at a low fixed arrival
+rate and is not a throughput benchmark.</strong> Saying otherwise would be the single easiest way to
+misrepresent this project.</p>
+<hr />
+<h2 id="8-gcp-deployment-verified-urls-qr-codes">8. GCP deployment, verified URLs, QR codes</h2>
+<h3 id="architecture">Architecture</h3>
+<ul>
+<li><strong>Project</strong> <code>fraudwatch-508912</code>, region <strong><code>asia-south1</code></strong> (VM in <code>asia-south1-a</code>).</li>
+<li><strong>Cloud Run</strong> serves both static sites and the lifecycle controller, at <strong>min-instances 0</strong>, max 2,
+  1 CPU, 256 MiB, concurrency 200 — so nothing is billed while nobody is visiting.</li>
+<li><strong>Compute Engine</strong> VM <code>fraudwatch-pipeline</code> runs Kafka, Flink, Spark, PostgreSQL and the services.</li>
+<li><strong>Firestore</strong> (<code>fraudwatch-runtime</code>) holds durable lifecycle state, so both sites see one shared
+  truth and survive a Cloud Run instance being recycled.</li>
+<li><strong>Cloud Tasks</strong> (<code>fraudwatch-lifecycle</code>) schedules the idle-shutdown check.</li>
+<li><strong>Lifecycle:</strong> a validated visit wakes the VM (~25 s, §7.3); 45 idle minutes stop it again.</li>
+</ul>
+<h3 id="verified-urls">Verified URLs</h3>
+<table>
+<thead>
+<tr>
+<th>Site</th>
+<th>URL</th>
+<th>Verification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FraudWatch Live</td>
+<td><code>https://fraudwatch-live-2djxmgtj5a-el.a.run.app/</code></td>
+<td>5/5 routes HTTP 200, rendered in Chromium 2026-09-18</td>
+</tr>
+<tr>
+<td>FraudWatch Lab</td>
+<td><code>https://fraudwatch-lab-2djxmgtj5a-el.a.run.app/</code></td>
+<td>7/7 routes HTTP 200, rendered in Chromium 2026-09-18</td>
+</tr>
+</tbody>
+</table>
+<p>All 12 routes returned HTTP 200 in a real browser, and a <code>canvas</code> initialised on every 3D hero (the 2D
+fallback was not needed). <code>/viva</code> returns HTTP 301 to <code>/</code> on both sites, as required.</p>
+<table>
+<thead>
+<tr>
+<th>FraudWatch Live</th>
+<th>FraudWatch Lab</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><img alt="QR code for FraudWatch Live" src="media/qr/qr-live.png" /></td>
+<td><img alt="QR code for FraudWatch Lab" src="media/qr/qr-lab.png" /></td>
+</tr>
+</tbody>
+</table>
+<h3 id="known-defect-at-time-of-writing-cors">Known defect at time of writing: CORS</h3>
+<p><strong>Every API call from both deployed sites is currently blocked by CORS</strong> — 192 console errors across
+the two walkthrough recordings, all the same failure. The controller's <code>ALLOWED_ORIGINS</code> lists the
+project-number host form (<code>fraudwatch-live-997216389793.asia-south1.run.app</code>) while a browser loads the
+sites from the hash form (<code>fraudwatch-live-2djxmgtj5a-el.a.run.app</code>). Both host forms serve the sites;
+the origin check is an exact string match, so the hash form is rejected.</p>
+<p>This is worth a moment in the viva because of <em>how</em> it was found. Section 6 of <code>measured-results.md</code>
+verified every route with <code>curl</code> and found 200 everywhere — and <code>curl</code> cannot see this defect at all,
+because the HTML and assets really are served correctly. It only appears once a browser performs the
+cross-origin check on the <em>subsequent</em> API calls. The fix is to add the hash-form origins to
+<code>ALLOWED_ORIGINS</code> on <code>fraudwatch-control</code>; it had not been applied at the time of writing because the
+deploying account's gcloud credentials had expired.</p>
+<h3 id="cost">Cost</h3>
+<p>Zero out-of-pocket. Everything runs on <strong>Google Cloud Free Trial credit</strong>. This report does not call
+that "free hosting": credit is being consumed, and when the trial credit ends or expires the deployment
+stops unless someone chooses to pay. No paid billing upgrade was performed, and no domain,
+subscription or credit was purchased. <code>min-instances 0</code> plus the 45-minute idle shutdown exist
+specifically to keep credit consumption near zero when the project is not being demonstrated.</p>
+<hr />
+<h2 id="9-testing-failure-handling-reproducibility-security-cost">9. Testing, failure handling, reproducibility, security, cost</h2>
+<p><strong>Testing.</strong> A Playwright (Chromium) end-to-end suite covers both apps; <code>npm run typecheck</code> passes
+across the monorepo. Browser capture scripts (<code>scripts/capture_screenshots.mjs</code>,
+<code>scripts/capture_video.mjs</code>) re-render both deployed sites on demand and <strong>fail loudly</strong> on any non-2xx
+route, so the evidence in this report is regenerable rather than hand-collected.</p>
+<p><strong>Failure handling.</strong>
+- Flink TaskManager loss → checkpoint restore, no loss, no duplicates (§7.2).
+- A failed wake stops the VM instead of leaving it running (§7.3).
+- While the VM is not ready the controller returns <code>503 {"error":{"code":"pipeline_starting_vm",…}}</code> —
+  an explicit unavailable state, never a fabricated empty result.
+- Invalid input is routed to <code>dlq_events</code> with a reason, not dropped.
+- Duplicate delivery does not create duplicate logical alerts (measured: 0 duplicates in §7.1).</p>
+<p><strong>Reproducibility.</strong> Fixed seeds (<code>20260917</code>), pinned versions, committed model artifact with its
+<code>metadata.json</code> and <code>evaluation.json</code>, versioned <code>fs-1.1</code> / <code>rules-1.1</code> / <code>policy-1.0</code> contracts, and
+Docker Compose definitions for the full local stack. <code>docs/local-setup.md</code>, <code>docs/apache-stack.md</code> and
+<code>docs/gcp-deployment.md</code> document the paths from a clean machine.</p>
+<p><strong>Security.</strong>
+- No API key or secret appears in frontend code, Git history, logs, screenshots, this report, or any
+  downloadable archive. Deployed secrets live in <strong>Secret Manager</strong>; local secrets live in an ignored
+  <code>.env</code>.
+- Kafka, PostgreSQL, the Flink admin UI and the Spark admin UI are <strong>not</strong> exposed to the internet.
+- Operator actions require HMAC tokens (<code>x-operator-token</code>); service-to-service calls require
+  <code>x-internal-token</code>.
+- Public visitors get <strong>bounded</strong> preset scenarios only — they cannot launch unbounded workloads or
+  reach another visitor's private session.
+- The raw Kaggle dataset is excluded from the repository and from every shipped bundle.</p>
+<p><strong>Cost.</strong> See §8. Free Trial credit only; no paid upgrade; idle-stop and min-instances 0 as the
+controls.</p>
+<hr />
+<h2 id="10-conclusion-limitations-future-work-references">10. Conclusion, limitations, future work, references</h2>
+<h3 id="conclusion">Conclusion</h3>
+<p>FraudWatch works end to end on real infrastructure. A real public dataset flows through real Kafka,
+real Flink and real Spark; a real LightGBM model scores every event and explains it; results persist to
+PostgreSQL and stream to two deployed websites that wake their own backend and put it back to sleep.
+The CA2 question has a measured answer: on identical input the two engines agree <strong>exactly</strong> — zero
+action disagreements, maximum score difference 0.000000000 — while differing by roughly 42× in p50
+latency purely because of their execution models.</p>
+<h3 id="limitations-current-honest">Limitations (current, honest)</h3>
+<ol>
+<li><strong>CORS defect on the deployed stack (§8)</strong> — the sites render, but their API calls are blocked. The
+   fix is identified and one command wide; it was not applied before this draft.</li>
+<li><strong>Model quality is modest</strong> — PR-AUC 0.1375 at 3.48% prevalence. Better than the baseline, not
+   production-grade.</li>
+<li><strong>No throughput benchmark</strong> — every latency figure is at a fixed 10 eps offered rate (§7.4).</li>
+<li><strong>Spark measured at one trigger interval only</strong> (1000 ms).</li>
+<li><strong>The §6 comparison predates the experiment runner</strong> — <code>services/ops-agent/</code> is implemented and has
+   completed a <code>late_events</code> experiment, but has not yet reproduced the parity run.</li>
+<li><strong><code>R3_TEST_THEN_LARGE</code> fires zero times</strong> and it has not been determined whether that is the data or
+   the thresholds.</li>
+<li><strong>One unexplained drain failure</strong> in the idle-shutdown history (§7.3).</li>
+</ol>
+<h3 id="future-work">Future work</h3>
+<p>Fix the CORS origins and recapture the screenshots with live data; re-run the parity comparison through
+the experiment runner so it is reproducible from the UI; sweep Spark's trigger interval to separate
+trigger cost from engine cost; run a genuine saturation/throughput benchmark; cost-sensitive threshold
+selection; drift monitoring on the streaming features.</p>
+<h3 id="references">References</h3>
+<ul>
+<li>Apache Kafka — https://kafka.apache.org/</li>
+<li>Apache Flink — https://flink.apache.org/</li>
+<li>Apache Spark Structured Streaming — https://spark.apache.org/</li>
+<li>LightGBM — https://lightgbm.readthedocs.io/</li>
+<li>Lundberg &amp; Lee, <em>A Unified Approach to Interpreting Model Predictions</em> (SHAP), NeurIPS 2017</li>
+<li>IEEE-CIS Fraud Detection, Kaggle / Vesta Corporation — https://www.kaggle.com/c/ieee-fraud-detection</li>
+<li>PostgreSQL — https://www.postgresql.org/</li>
+<li>Google Cloud Run / Compute Engine / Firestore / Cloud Tasks documentation</li>
+</ul>
+<h3 id="proposed-team-responsibility-matrix">Proposed team responsibility matrix</h3>
+<p><strong>This is a proposal, not a record of completed contributions.</strong> Per-member attribution of the work
+already in the repository has not been established, so nothing below should be read as a claim about
+who did what. Replace it with actual contributions before submission.</p>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Proposed owner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Streaming engines (Flink job, Spark job, Kafka topics)</td>
+<td>Hardik Hinduja</td>
+</tr>
+<tr>
+<td>ML pipeline (features, training, evaluation, model card)</td>
+<td>Avinash Gehi</td>
+</tr>
+<tr>
+<td>Backend services, API, database, contracts</td>
+<td>Siddharth Dey</td>
+</tr>
+<tr>
+<td>Frontend (both sites, 3D scenes, design system)</td>
+<td>Sahil Deshmukh</td>
+</tr>
+<tr>
+<td>GCP deployment, lifecycle, cost control</td>
+<td>shared</td>
+</tr>
+<tr>
+<td>Report, documentation, demo script</td>
+<td>shared</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="11-viva-preparation-20-questions-and-answers">11. Viva preparation — 20 questions and answers</h2>
+<p><strong>1. Why is accuracy of 0.9059 not the headline?</strong>
+Because 96.5% of the test split is legitimate. Always predicting "not fraud" beats our accuracy. PR-AUC
+0.1375 against a 3.48% base rate is the meaningful number.</p>
+<p><strong>2. What does PR-AUC 0.1375 actually mean here?</strong>
+A random classifier would score about 0.035 (the prevalence). We are roughly 4× that, and clearly above
+the logistic-regression baseline's 0.0961 — good, not production-grade.</p>
+<p><strong>3. Why LightGBM rather than a deep model?</strong>
+Tabular data with strong feature interactions, a small feature set, fast training, and TreeSHAP gives
+exact per-event attributions cheaply enough to run inline in a stream.</p>
+<p><strong>4. Where did the thresholds come from?</strong>
+Selected on the <strong>validation</strong> split (alert 0.10477, review 0.06955), then applied unchanged to the
+held-out test split, which was scored once. Choosing them on test would be leakage.</p>
+<p><strong>5. Are the model outputs probabilities?</strong>
+They are model <strong>scores</strong>. We report Brier 0.0321 and ECE 0.0055 for the test split, but we do not
+present the scores as calibrated probabilities elsewhere.</p>
+<p><strong>6. Why only 15 features?</strong>
+They must be computable from the stream. Any feature needing the full dataset or the future would
+inflate the offline score and then fail at runtime.</p>
+<p><strong>7. What is the difference between Flink and Spark here?</strong>
+Execution model only. Flink scores each record on arrival; Spark waits for a 1 s micro-batch boundary.
+Same model, same features, same rules, same policy.</p>
+<p><strong>8. Then why are the latencies 92 ms vs 3,862 ms?</strong>
+The 1 s trigger plus batch scheduling and scoring overhead. It is architectural, not a quality
+difference — and it is measured at a 1 s trigger, not an inherent property of Spark.</p>
+<p><strong>9. How do you know the comparison is fair?</strong>
+Both engines consumed the same Kafka records from one generator run, and we compare per <code>event_id</code>:
+500 in both, 0 only-Flink, 0 only-Spark, max score difference 0.000000000.</p>
+<p><strong>10. What is event time and why use it?</strong>
+The time the transaction happened, not the time we received it. Processing time would make the result
+depend on network delay, so late events would silently change the answer.</p>
+<p><strong>11. What is a watermark?</strong>
+Flink's assertion that no event older than a bound will arrive. We use
+<code>forBoundedOutOfOrderness(5 s)</code> — 5 seconds of tolerated out-of-order arrival.</p>
+<p><strong>12. What happens to a genuinely late event?</strong>
+It goes to the <strong>late side output</strong> and is persisted with a <code>late</code> flag. We never drop it — dropping
+would make the results look cleaner than they are.</p>
+<p><strong>13. Prove the late path works.</strong>
+Run <code>r_b17d3ca811cf1137</code>: 600 events, 49 flagged <code>late</code>, and those 49 are a 1:1 match with the 49
+delivered more than 10 s after their event time.</p>
+<p><strong>14. An earlier run showed late = 0. Was it broken?</strong>
+No. Its maximum delivery lag was 3,842 ms — inside the 5 s bound — and it finished in ~15 s, before the
+delayed deliveries came due. Nothing <em>was</em> late.</p>
+<p><strong>15. How do you survive a failure?</strong>
+EXACTLY_ONCE checkpoints every 10 s, retained on cancellation. We killed the TaskManager, the job
+restored from <code>chk-80</code>, <code>restored = 4</code>, with no event loss and no duplicate rows.</p>
+<p><strong>16. Why did the job still show RUNNING right after you killed it?</strong>
+The ~60 s heartbeat timeout had not elapsed. It is a detection delay, not survival.</p>
+<p><strong>17. How is this zero cost?</strong>
+Google Cloud Free Trial <strong>credit</strong> — not free hosting. Cloud Run at min-instances 0 and a 45-minute
+idle VM shutdown keep consumption near zero. No paid billing upgrade, no purchases.</p>
+<p><strong>18. What happens when someone visits while the VM is asleep?</strong>
+A validated visit triggers a wake (measured ~25 s). Until it is ready the controller returns an
+explicit <code>503 pipeline_starting_vm</code>, never a fake empty result.</p>
+<p><strong>19. What is currently broken?</strong>
+CORS on the deployed stack: <code>ALLOWED_ORIGINS</code> holds the project-number host form while browsers use the
+hash form, so every deployed API call is blocked. The sites render; their data panels do not fill.</p>
+<p><strong>20. Why did your <code>curl</code> checks miss that?</strong>
+Because <code>curl</code> does not enforce the same-origin policy. The HTML and assets are served correctly, so
+every route returned 200. The defect only appears once a real browser performs the cross-origin check
+on the subsequent API calls — which is exactly why we re-verified both sites in Chromium.</p>
+<hr />
+<h3 id="evidence-index">Evidence index</h3>
+<table>
+<thead>
+<tr>
+<th>Evidence</th>
+<th>Location</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Measured GCP runs</td>
+<td><code>docs/measured-results.md</code></td>
+</tr>
+<tr>
+<td>Benchmark protocol</td>
+<td><code>docs/benchmark-methodology.md</code></td>
+</tr>
+<tr>
+<td>Model card</td>
+<td><code>docs/model-card.md</code></td>
+</tr>
+<tr>
+<td>Model metrics (raw)</td>
+<td><code>ml/artifacts/fw-ieee-stream-1.1.0/evaluation.json</code></td>
+</tr>
+<tr>
+<td>Screenshots (12 routes + 2 mobile)</td>
+<td><code>reports/media/screenshots/</code></td>
+</tr>
+<tr>
+<td>Walkthrough recordings (both sites)</td>
+<td><code>reports/media/video/</code></td>
+</tr>
+<tr>
+<td>Per-route capture log</td>
+<td><code>reports/media/video/tour-log.json</code></td>
+</tr>
+<tr>
+<td>QR codes</td>
+<td><code>reports/media/qr/</code></td>
+</tr>
+<tr>
+<td>Implementation status</td>
+<td><code>docs/status-checklist.md</code></td>
+</tr>
+<tr>
+<td>Demo script (5–7 min)</td>
+<td><code>docs/demo-script.md</code></td>
+</tr>
+</tbody>
+</table></body></html>

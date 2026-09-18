@@ -29,6 +29,8 @@ from .runs import Cancelled, RunFailed
 log = logging.getLogger("ops-agent.experiments")
 
 KINDS = ("comparison", "late_events", "recovery")
+# Below this the injected 15-30 s delays never come due inside the run (see late_events).
+MIN_LATE_RUN_SECONDS = 60.0
 DEFAULTS = {
     "comparison": {"events_per_run": 300, "rate_eps": 10.0, "repeats": 3, "seed": 20260917},
     "late_events": {"events": 600, "rate_eps": 5.0, "seed": 20260917},
@@ -254,6 +256,14 @@ class Experiments:
         rate = _float(p, "rate_eps", d["rate_eps"], 1.0, 200.0)
         seed = _int(p, "seed", d["seed"], 0, 2**62 - 1)
         engines = _engines(p, self.containers)
+        # The generator delays a planned-late record by 15-30 s. A run shorter than that finishes its
+        # event budget before those records are due, so it delivers none of them and reports zero late
+        # events - which reads like "the engine saw nothing late" when in fact nothing late was sent.
+        if events / max(rate, 0.1) < MIN_LATE_RUN_SECONDS:
+            raise ValueError(
+                f"events / rate_eps is {events / max(rate, 0.1):.0f} s; a late-event experiment needs at "
+                f"least {MIN_LATE_RUN_SECONDS:g} s so the 15-30 s injected delays are actually delivered. "
+                f"Raise events or lower rate_eps.")
         for engine in engines:
             if engine != "flink":
                 await self._require_running(engine)
@@ -275,6 +285,8 @@ class Experiments:
                 "persisted": b.get("persisted", 0), "late": b.get("late", 0),
                 "late_planned": b.get("late_planned", 0), "late_unplanned": b.get("late_unplanned", 0),
                 "planned_not_late": b.get("planned_not_late", 0),
+                "out_of_order": b.get("out_of_order", 0),
+                "out_of_order_late": b.get("out_of_order_late", 0),
                 "windows_late_dropped": dropped,
                 "examples": await self.store.late_examples(r["run_id"], engine),
             }
@@ -283,7 +295,10 @@ class Experiments:
             "run_id": r["run_id"], "rate_eps": rate, "events": r["sent"],
             "watermark_bound_ms": _watermark_bound(),
             "planned_late": planned, "drain": r["drain"], "engines": out_engines,
-            "notes": ["'late' is the engine's own flag: the record arrived after the watermark had "
+            "notes": ["The generator injects two delay classes: 'late_delivery' (15-30 s, beyond the "
+                      "watermark bound) and 'out_of_order' (1-4 s, inside it). The second class should "
+                      "arrive out of order but NOT late; that is what separates lateness from disorder.",
+                      "'late' is the engine's own flag: the record arrived after the watermark had "
                       "passed its event time. 'planned' is what the generator deliberately delayed. "
                       "They are not required to match — a planned-late record that still beat the "
                       "watermark is correctly not late."],
