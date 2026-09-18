@@ -320,23 +320,59 @@ class Experiments:
                             f"a recovery experiment needs a running job to interrupt")
 
         killed: dict = {}
+        restart: dict = {"restarted_by": None, "container_up_at": None}
 
         async def kill_when_ready(run_id: str) -> None:
-            """Wait until the run has produced enough events, then kill the TaskManager."""
+            """Wait until the run has produced enough events, then kill the TaskManager.
+
+            The kill only happens mid-stream. If the run ends, or never gets as far as ``kill_after``,
+            nothing is killed: a fault injected into an idle job measures nothing, and reporting it as a
+            recovery experiment would be a result about a different situation."""
             deadline = now_ms() + int((kill_after / max(rate, 0.1) + 120) * 1000)
+            sent = 0
             while now_ms() < deadline:
                 row = await self.store.run_row(run_id)
+                sent = int((row or {}).get("events_sent") or 0)
+                if sent >= kill_after:
+                    break
                 if row is None or row["status"] in ("completed", "failed", "stopped", "cancelled"):
-                    break
-                if int(row["events_sent"] or 0) >= kill_after:
-                    break
+                    killed["skipped"] = f"run {row['status'] if row else 'missing'} after {sent} events, before the kill point"
+                    return
                 await asyncio.sleep(0.5)
+            else:
+                killed["skipped"] = f"only {sent} of {kill_after} events sent before the deadline"
+                return
             try:
                 await self.docker.kill(service, "SIGKILL")
-                killed.update({"at": now_ms(), "container": service, "signal": "SIGKILL"})
+                killed.update({"at": now_ms(), "container": service, "signal": "SIGKILL", "events_sent_at_kill": sent})
             except (DockerUnavailable, ContainerNotFound, RuntimeError) as exc:
                 killed.update({"at": now_ms(), "container": service, "signal": "SIGKILL",
                                "error": f"{type(exc).__name__}: {exc}"})
+                return
+            await bring_back()
+
+        async def bring_back(grace_s: float = 20.0) -> None:
+            """Give the container's restart policy a chance, then start it ourselves.
+
+            A kill through the Docker API counts as a manual stop, so ``restart: unless-stopped`` does
+            not necessarily bring the container back. Which of the two restarted it is recorded, not
+            assumed."""
+            # Docker still reports a SIGKILLed container as "running" for a moment, so first wait for it to
+            # actually go down; otherwise that stale state reads as an instant restart that never happened.
+            down_by = time.monotonic() + 15.0
+            while time.monotonic() < down_by and await self.docker.state(service) == "running":
+                await asyncio.sleep(0.25)
+            end = time.monotonic() + grace_s
+            while time.monotonic() < end:
+                if await self.docker.state(service) == "running":
+                    restart.update({"restarted_by": "docker_restart_policy", "container_up_at": now_ms()})
+                    return
+                await asyncio.sleep(1.0)
+            try:
+                await self.docker.start(service)
+                restart.update({"restarted_by": "ops_agent", "container_up_at": now_ms()})
+            except (DockerUnavailable, ContainerNotFound, RuntimeError) as exc:
+                restart.update({"restarted_by": None, "error": f"{type(exc).__name__}: {exc}"})
 
         await self._step(exp["id"], "measure", "replaying, then killing the TaskManager mid-stream", 1, 3)
         killer: asyncio.Task | None = None
@@ -354,8 +390,13 @@ class Experiments:
                 killer.cancel()
                 await asyncio.gather(killer, return_exceptions=True)
 
+        if killed.get("skipped") or not killed.get("at"):
+            raise RunFailed(f"the TaskManager was not killed: {killed.get('skipped') or 'the kill step did not run'} "
+                            f"(sent {r['sent']} events); nothing was interrupted, so there is no recovery to measure")
         if killed.get("error"):
             raise RunFailed(f"could not kill {service}: {killed['error']}")
+        if restart.get("error"):
+            raise RunFailed(f"could not restart {service} after the kill: {restart['error']}")
 
         await self._step(exp["id"], "recover", "waiting for the job to return to RUNNING", 2, 3, r["run_id"])
         after, running_at = await self._await_running(after_ms=killed.get("at") or now_ms())
@@ -369,7 +410,9 @@ class Experiments:
             "before": {"job_id": before.get("job_id"), "state": before.get("state"),
                        "restarts": before.get("restarts"), "last_checkpoint": before.get("last_checkpoint")},
             "kill": killed,
-            "restart": {"restarted_by": "docker_restart_policy", "at": running_at},
+            # `at` is when the TaskManager container was running again; the job's own return to RUNNING
+            # is `after.running_at`.
+            "restart": {"restarted_by": restart["restarted_by"], "at": restart["container_up_at"]},
             "after": {"state": after.get("state"), "restarts": after.get("restarts"), "running_at": running_at,
                       "first_new_checkpoint": after.get("last_checkpoint"),
                       "restored_from": after.get("restored_from"), "recovery_ms": recovery_ms},
