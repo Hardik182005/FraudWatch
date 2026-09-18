@@ -20,6 +20,7 @@ const TOURS = [
   {
     name: 'live-walkthrough',
     site: LIVE,
+    startRun: true,
     routes: [
       { route: '/',         hold: 9000, canvas: true },
       { route: '/console',  hold: 8000 },
@@ -72,6 +73,35 @@ async function runTour(browser, tour, log) {
     if (m.type() === 'error') problems.push({ kind: 'console', text: m.text() });
   });
   page.on('pageerror', (e) => problems.push({ kind: 'pageerror', text: String(e) }));
+
+  // On the Live tour, start a real demo session and a real bounded run first, so the recording shows
+  // the console carrying data instead of an empty shell. The Lab tour needs no session.
+  if (tour.startRun) {
+    await page.goto(`${tour.site}/console`, { waitUntil: 'load', timeout: 90_000 });
+    const startDemo = page.getByTestId('start-demo');
+    if (await startDemo.count()) {
+      await startDemo.first().click();
+      await startDemo.first().waitFor({ state: 'detached', timeout: 60_000 }).catch(() => {});
+    }
+    await page.goto(`${tour.site}/scenario`, { waitUntil: 'networkidle', timeout: 90_000 });
+    const startRunBtn = page.getByTestId('start-run');
+    // The button stays disabled until the scenario list has loaded and one is selected, so wait for
+    // it to become enabled rather than sampling it once and concluding it is unavailable.
+    await startRunBtn.first().waitFor({ state: 'visible', timeout: 60_000 }).catch(() => {});
+    const enabledBy = Date.now() + 60_000;
+    while (Date.now() < enabledBy && (await startRunBtn.count()) && (await startRunBtn.first().isDisabled())) {
+      await sleep(2000);
+    }
+    if ((await startRunBtn.count()) && !(await startRunBtn.first().isDisabled())) {
+      await startRunBtn.first().click();
+      await page.getByTestId('current-run').waitFor({ timeout: 60_000 }).catch(() => {});
+      await sleep(20_000); // let events accumulate before the tour starts filming the console
+      log.startedRun = true;
+    } else {
+      log.startedRun = false;
+      log.startRunNote = 'start-run unavailable or disabled; the Live tour was recorded without a run';
+    }
+  }
 
   for (const step of tour.routes) {
     const url = `${tour.site}${step.route}`;

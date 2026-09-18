@@ -184,8 +184,10 @@ stopped the VM instead of leaving it running.
 ## 7. Browser-rendered verification of both deployed sites (2026-09-18)
 
 Both sites were loaded at their Cloud Run origins in a real Chromium (Playwright 1.63.0, headless,
-1440x900), not with `curl`. Screenshots are in `reports/media/screenshots/`, walkthrough recordings in
-`reports/media/video/`, and the raw per-page log in `reports/media/video/tour-log.json`.
+1440x900), not with `curl`. The Live pass drives the app as a visitor does: it starts a real demo
+session, starts a real bounded scenario run, waits for the session's events-used counter to move, and
+only then photographs the console. Screenshots are in `reports/media/screenshots/`, walkthrough
+recordings in `reports/media/video/`, and the raw logs in `capture-log.json` / `tour-log.json`.
 
 | Check | Result |
 |---|---|
@@ -193,23 +195,50 @@ Both sites were loaded at their Cloud Run origins in a real Chromium (Playwright
 | Live routes | `/`, `/console`, `/scenario`, `/alerts`, `/pipeline` |
 | Lab routes | `/`, `/ca1`, `/ca2`, `/experiments`, `/architecture`, `/system`, `/evidence` |
 | WebGL | a `canvas` element initialised on every 3D hero; the 2D fallback was not needed |
-| Console/page errors during the two walkthroughs | **192** |
+| Console **errors** | **0** (8 remaining messages are THREE.js deprecation and WebGL performance warnings) |
+| Live session | events-used moved `0 of 5,000` → `80 of 5,000` before capture |
 
-**Defect found: every API call from both deployed sites is blocked by CORS.** All 192 errors are the
-same failure — 96 `net::ERR_FAILED` plus 96 `Access to fetch at
-'https://fraudwatch-control-997216389793.asia-south1.run.app/api/v1/…' has been blocked by CORS
-policy: No 'Access-Control-Allow-Origin' header is present`. The controller's `ALLOWED_ORIGINS` lists
-the project-number host form (`fraudwatch-live-997216389793.asia-south1.run.app`), while a browser
-actually loads the sites from the hash form (`fraudwatch-live-2djxmgtj5a-el.a.run.app`). Both host
-forms serve the sites, the origin check is an exact string match, so the hash form is rejected.
+### 7.1 A CORS defect found here, and fixed
+
+The first capture attempt produced **192 console errors**, all one failure: every API call from both
+deployed sites was blocked by `No 'Access-Control-Allow-Origin' header is present`. `ALLOWED_ORIGINS`
+on `fraudwatch-control` listed only the project-number host form
+(`fraudwatch-live-997216389793.asia-south1.run.app`), while a browser loads the sites from the hash
+form (`fraudwatch-live-2djxmgtj5a-el.a.run.app`). Both host forms serve the sites and the origin check
+is an exact string match, so the hash form was rejected.
 
 This is exactly the class of defect the `curl` checks in §6 could not see: every route returned 200
-there because the HTML and assets are served fine — it is only the browser's cross-origin check on the
-subsequent API calls that fails. **The screenshots and recordings therefore show both sites rendering
-correctly with their data panels empty or in an error state.** They are an honest record of the
-deployed state on 2026-09-18, not a demonstration of the pipeline serving data. The fix is to add the
-hash-form origins to `ALLOWED_ORIGINS` on `fraudwatch-control`; it was not applied because the gcloud
-credentials for `sahildeshmukh1616` had expired at the time of capture.
+there because the HTML and assets are served correctly. It is only the browser's cross-origin check on
+the *subsequent* API calls that failed.
+
+**Fixed 2026-09-18.** `ALLOWED_ORIGINS` now carries all four host forms; deployed as Cloud Run revision
+`fraudwatch-control-00004-dgw`. Verified directly — a request carrying
+`Origin: https://fraudwatch-live-2djxmgtj5a-el.a.run.app` now comes back with a matching
+`access-control-allow-origin`, and the same for the Lab origin. The recapture after the fix recorded
+**0 console errors**, down from 192.
+
+### 7.2 What the browser then showed (wake `wake-6de56048a5f8`)
+
+With the pipeline woken from `sleeping` and a bounded `ieee_replay` run started from `/scenario`, the
+Live console rendered real data rather than an empty shell. Read off the captured console at
+13:15:47 UTC, session `s_ZAl53i5pLU`, run `r_ecb1798ad9`:
+
+| Panel | Value shown |
+|---|---|
+| Scored | 274 (186 allowed, 0 unscored) |
+| Alerts | 80, with 0 late events |
+| Reviews | 8 queued |
+| Throughput (last 1 min) | 4.6 ev/s |
+| End-to-end latency | p50 **110 ms**, p95 **167 ms**, p99 **186 ms** (274 events, last 300 s) |
+
+The alert queue shows per-alert scores, engine `Flink`, and `R1_BURST` firing on many rows. The
+1-minute event-time window panel correctly read "No closed windows yet — a window is emitted once the
+watermark passes its end", which is the honest state that early in a run rather than a fabricated zero.
+
+Two caveats on these numbers. They are a **live UI reading at one instant**, not a controlled
+benchmark: the run was still in flight, so the counts are a snapshot, not a total. And the latency
+percentiles are the deployed pipeline at the scenario's own rate — they agree closely with the Flink
+figures in §1 (p50 92 ms, p95 155 ms) but were not produced under the §1 protocol.
 
 ## What is still not measured
 
@@ -219,7 +248,6 @@ credentials for `sahildeshmukh1616` had expired at the time of capture.
 - Any comparison run through the `services/ops-agent/` experiment runner. The runner is implemented
   and has completed a `late_events` experiment locally, but the comparison in §1 predates it and has
   not been reproduced through it.
-- Live pipeline behaviour as seen from a browser at the Cloud Run origin. §7 confirms the sites render,
-  but the CORS defect recorded there meant no API call succeeded, so the console, alert feed and
-  pipeline panels were never observed carrying real data in a browser.
+- A controlled benchmark of what §7.2 shows. The console was observed carrying real data in a browser,
+  but that is a live UI snapshot mid-run, not a measured run under the §1 protocol.
 - Why the drain call in §5 reported a failure while `active-work` reported nothing in flight.

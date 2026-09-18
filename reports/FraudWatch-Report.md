@@ -195,12 +195,24 @@ fired.
 
 ![FraudWatch Live console](media/screenshots/live-console.png)
 
-**What these screenshots do and do not show.** They were captured on 2026-09-18 from the deployed Cloud
-Run origin in a real headless Chromium, so they are a true record of what the deployed sites render.
-They show the data panels **empty or in an error state**, because of the CORS defect described in §8:
-every API call from the deployed sites was blocked at capture time. They are therefore evidence that
-the sites deploy, route and render — including WebGL — and not evidence of the pipeline serving live
-data. Screenshots of the console carrying real data should be recaptured once that defect is fixed.
+**What these screenshots show.** They were captured on 2026-09-18 from the deployed Cloud Run origin in
+a real headless Chromium, driving the app the way a visitor does: the capture starts a real demo
+session, starts a real bounded `ieee_replay` run from `/scenario`, waits for the session's events-used
+counter to move, and only then photographs the console. They are a record of the deployed system
+actually working, not of an empty shell.
+
+Read off the captured console (session `s_ZAl53i5pLU`, run `r_ecb1798ad9`): **274 scored**, 186 allowed,
+**80 alerts**, 8 reviews queued, 0 late events, throughput 4.6 ev/s, and end-to-end latency
+**p50 110 ms · p95 167 ms · p99 186 ms**. The alert queue carries per-alert scores, the engine (`Flink`)
+and the rules that fired, with `R1_BURST` on many rows. The event-time window panel reads "No closed
+windows yet — a window is emitted once the watermark passes its end", which is the honest state that
+early in a run rather than a fabricated zero.
+
+Two caveats. These are a **live UI reading at one instant while the run was still in flight**, so the
+counts are a snapshot and not a total, and the latency percentiles are not a controlled benchmark under
+the §7 protocol — though they agree closely with the Flink figures in §6 (p50 92 ms, p95 155 ms). An
+earlier capture the same day showed these panels empty because of the CORS defect described in §8; that
+defect has since been fixed and these images are from the recapture.
 
 A walkthrough recording of the whole site is at `media/video/live-walkthrough.webm`, with the raw
 per-route log in `media/video/tour-log.json`.
@@ -368,20 +380,25 @@ fallback was not needed). `/viva` returns HTTP 301 to `/` on both sites, as requ
 |---|---|
 | ![QR code for FraudWatch Live](media/qr/qr-live.png) | ![QR code for FraudWatch Lab](media/qr/qr-lab.png) |
 
-### Known defect at time of writing: CORS
+### A CORS defect found in browser testing — and fixed
 
-**Every API call from both deployed sites is currently blocked by CORS** — 192 console errors across
-the two walkthrough recordings, all the same failure. The controller's `ALLOWED_ORIGINS` lists the
-project-number host form (`fraudwatch-live-997216389793.asia-south1.run.app`) while a browser loads the
-sites from the hash form (`fraudwatch-live-2djxmgtj5a-el.a.run.app`). Both host forms serve the sites;
-the origin check is an exact string match, so the hash form is rejected.
+The first browser capture produced **192 console errors**, all one failure: every API call from both
+deployed sites was blocked by `No 'Access-Control-Allow-Origin' header is present`. The controller's
+`ALLOWED_ORIGINS` listed only the project-number host form
+(`fraudwatch-live-997216389793.asia-south1.run.app`), while a browser loads the sites from the hash form
+(`fraudwatch-live-2djxmgtj5a-el.a.run.app`). Both host forms serve the sites and the origin check is an
+exact string match, so the hash form was rejected.
 
-This is worth a moment in the viva because of *how* it was found. Section 6 of `measured-results.md`
-verified every route with `curl` and found 200 everywhere — and `curl` cannot see this defect at all,
-because the HTML and assets really are served correctly. It only appears once a browser performs the
-cross-origin check on the *subsequent* API calls. The fix is to add the hash-form origins to
-`ALLOWED_ORIGINS` on `fraudwatch-control`; it had not been applied at the time of writing because the
-deploying account's gcloud credentials had expired.
+This is worth a moment in the viva because of *how* it was found. The earlier verification checked every
+route with `curl` and found 200 everywhere — and `curl` cannot see this defect at all, because the HTML
+and assets really are served correctly. It only appears once a real browser performs the cross-origin
+check on the *subsequent* API calls. It is a clean example of why HTTP-level checks are not browser
+testing.
+
+**Fixed.** `ALLOWED_ORIGINS` now carries all four host forms, deployed as Cloud Run revision
+`fraudwatch-control-00004-dgw`. A request carrying either site's hash-form `Origin` now returns a
+matching `access-control-allow-origin`, and the recapture recorded **0 console errors** — down from 192,
+with the 8 remaining messages being THREE.js deprecation and WebGL performance warnings.
 
 ### Cost
 
@@ -433,7 +450,9 @@ controls.
 
 ### Conclusion
 
-FraudWatch works end to end on real infrastructure. A real public dataset flows through real Kafka,
+FraudWatch works end to end on real infrastructure, and this has now been observed from a browser
+against the deployed system: a visitor session started a bounded run and the console filled with real
+scored IEEE-CIS records at p50 110 ms end to end. A real public dataset flows through real Kafka,
 real Flink and real Spark; a real LightGBM model scores every event and explains it; results persist to
 PostgreSQL and stream to two deployed websites that wake their own backend and put it back to sleep.
 The CA2 question has a measured answer: on identical input the two engines agree **exactly** — zero
@@ -442,21 +461,19 @@ latency purely because of their execution models.
 
 ### Limitations (current, honest)
 
-1. **CORS defect on the deployed stack (§8)** — the sites render, but their API calls are blocked. The
-   fix is identified and one command wide; it was not applied before this draft.
-2. **Model quality is modest** — PR-AUC 0.1375 at 3.48% prevalence. Better than the baseline, not
+1. **Model quality is modest** — PR-AUC 0.1375 at 3.48% prevalence. Better than the baseline, not
    production-grade.
-3. **No throughput benchmark** — every latency figure is at a fixed 10 eps offered rate (§7.4).
-4. **Spark measured at one trigger interval only** (1000 ms).
-5. **The §6 comparison predates the experiment runner** — `services/ops-agent/` is implemented and has
+2. **No throughput benchmark** — every latency figure is at a fixed 10 eps offered rate (§7.4).
+3. **Spark measured at one trigger interval only** (1000 ms).
+4. **The §6 comparison predates the experiment runner** — `services/ops-agent/` is implemented and has
    completed a `late_events` experiment, but has not yet reproduced the parity run.
-6. **`R3_TEST_THEN_LARGE` fires zero times** and it has not been determined whether that is the data or
+5. **`R3_TEST_THEN_LARGE` fires zero times** and it has not been determined whether that is the data or
    the thresholds.
-7. **One unexplained drain failure** in the idle-shutdown history (§7.3).
+6. **One unexplained drain failure** in the idle-shutdown history (§7.3).
 
 ### Future work
 
-Fix the CORS origins and recapture the screenshots with live data; re-run the parity comparison through
+Re-run the parity comparison through
 the experiment runner so it is reproducible from the UI; sweep Spark's trigger interval to separate
 trigger cost from engine cost; run a genuine saturation/throughput benchmark; cost-sensitive threshold
 selection; drift monitoring on the streaming features.
@@ -562,14 +579,15 @@ idle VM shutdown keep consumption near zero. No paid billing upgrade, no purchas
 A validated visit triggers a wake (measured ~25 s). Until it is ready the controller returns an
 explicit `503 pipeline_starting_vm`, never a fake empty result.
 
-**19. What is currently broken?**
-CORS on the deployed stack: `ALLOWED_ORIGINS` holds the project-number host form while browsers use the
-hash form, so every deployed API call is blocked. The sites render; their data panels do not fill.
+**19. What did browser testing catch that your HTTP checks did not?**
+A CORS defect. `ALLOWED_ORIGINS` held the project-number host form while browsers load the hash form, so
+every deployed API call was blocked — 192 console errors, data panels empty. Fixed in revision
+`fraudwatch-control-00004-dgw`; the recapture showed 0 errors.
 
 **20. Why did your `curl` checks miss that?**
 Because `curl` does not enforce the same-origin policy. The HTML and assets are served correctly, so
 every route returned 200. The defect only appears once a real browser performs the cross-origin check
-on the subsequent API calls — which is exactly why we re-verified both sites in Chromium.
+on the subsequent API calls — which is exactly why HTTP checks are not browser testing.
 
 ---
 

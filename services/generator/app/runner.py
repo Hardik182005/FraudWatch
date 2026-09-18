@@ -126,6 +126,15 @@ class Run:
             self.status, self.error = "failed", f"{type(exc).__name__}: {exc}"
         finally:
             await asyncio.get_running_loop().run_in_executor(None, self.producer.flush, 10)
+            # events_sent counts records handed to the producer, not records the broker accepted. A
+            # wedged producer queues every record, times them all out, and the loop above still ends
+            # in 'completed' - so the run reports a full send while the topic received nothing, and
+            # whatever reads it (the experiment runner especially) blames the engine for the gap.
+            # Delivery is only known after the flush, which is why the check lives here.
+            if self.delivery_errors and self.status == "completed":
+                self.status = "failed"
+                self.error = (f"{self.delivery_errors} of {self.events_sent} records were never "
+                              f"acknowledged by the broker ({self.acked} acked)")
             await self.store.run_finished(self)
 
     def _apply_replay_controls(self) -> None:

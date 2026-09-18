@@ -128,10 +128,15 @@ class Runner:
         # Allow the generator the time the rate implies, plus headroom for startup and jitter.
         budget = events / max(rate_eps, 0.1) + 90.0
         row = await self.await_generator(run_id, exp_id, timeout_s=budget)
-        drain = await self.await_drain(run_id, exp_id, expected=int(row["events_sent"]), engines=len(engines),
+        # Measure against what the broker acknowledged, not what the generator handed to the producer.
+        # The two differ exactly when delivery fails, and counting the un-delivered records as 'sent'
+        # charges the engine for records it was never given. events_acked is null only for a run
+        # written before that column was populated, so events_sent stays the fallback.
+        sent = int(row["events_acked"] if row.get("events_acked") is not None else row["events_sent"])
+        drain = await self.await_drain(run_id, exp_id, expected=sent, engines=len(engines),
                                        timeout_s=drain_timeout_s)
         return {"run_id": run_id, "row": row, "drain": drain, "started_at": started, "ended_at": now_ms(),
-                "sent": int(row["events_sent"])}
+                "sent": sent}
 
 
 def _error_message(r: httpx.Response) -> str:

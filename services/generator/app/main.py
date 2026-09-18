@@ -37,9 +37,12 @@ MAX_TOTAL_EPS = settings.env_float("GENERATOR_MAX_TOTAL_EPS", 1200)
 MAX_ACTIVE_RUNS = settings.env_int("GENERATOR_MAX_ACTIVE_RUNS", 25)
 INTERNAL_TOKEN = os.getenv("INTERNAL_API_TOKEN", "")
 GENERATOR_ID = os.getenv("HOSTNAME", "generator")
+# Consecutive failures of the once-a-second Kafka heartbeat before the generator calls itself
+# degraded. A few seconds absorbs a broker reconnect; beyond that, delivery is genuinely at risk.
+HEARTBEAT_STALL = settings.env_int("GENERATOR_HEARTBEAT_STALL", 10)
 
 state: dict = {"runs": {}, "store": None, "producer": None, "partitions": 0, "heartbeats": 0, "hb_errors": 0,
-               "started_at": now_ms()}
+               "hb_failing": 0, "started_at": now_ms()}
 
 
 def _error(status: int, code: str, message: str) -> JSONResponse:
@@ -65,8 +68,10 @@ async def heartbeat_loop() -> None:
                 producer.produce(topic, value=beat, partition=p)
             producer.poll(0)
             state["heartbeats"] += 1
+            state["hb_failing"] = 0
         except Exception as exc:
             state["hb_errors"] += 1
+            state["hb_failing"] += 1
             log.warning("heartbeat failed: %s", exc)
         await asyncio.sleep(1.0)
 
@@ -79,11 +84,22 @@ async def status_loop() -> None:
         try:
             for r in active:
                 await store.progress(r, publish=True)
-            ok = state["partitions"] > 0
-            await store.heartbeat("ok" if ok else "degraded",
-                                  f"{len(active)} active runs" if ok else "no partition metadata from Kafka",
+            # partitions is fetched once and then cached, so on its own it says only that Kafka was
+            # reachable at some point - a producer that wedges later keeps reporting 'ok' while every
+            # record it is handed times out undelivered. hb_failing is the live signal: it counts
+            # consecutive failures of the once-a-second heartbeat and resets on the first success.
+            stalled = state["hb_failing"] >= HEARTBEAT_STALL
+            ok = state["partitions"] > 0 and not stalled
+            if stalled:
+                detail = f"{state['hb_failing']} consecutive Kafka heartbeat failures; records may not be delivered"
+            elif state["partitions"] > 0:
+                detail = f"{len(active)} active runs"
+            else:
+                detail = "no partition metadata from Kafka"
+            await store.heartbeat("ok" if ok else "degraded", detail,
                                   {"active_runs": len(active), "heartbeats_sent": state["heartbeats"],
-                                   "heartbeat_errors": state["hb_errors"], "partitions": state["partitions"],
+                                   "heartbeat_errors": state["hb_errors"], "heartbeats_failing": state["hb_failing"],
+                                   "partitions": state["partitions"],
                                    "offered_eps": round(sum(r.stream.rate_eps for r in active if r.status == "running"), 2)})
         except Exception as exc:
             log.warning("status update failed: %s", exc)
