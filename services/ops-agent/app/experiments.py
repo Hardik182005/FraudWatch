@@ -321,6 +321,9 @@ class Experiments:
 
         killed: dict = {}
         restart: dict = {"restarted_by": None, "container_up_at": None}
+        # Started the moment the kill lands, so the job's return to RUNNING is timed as it happens and
+        # not after the run has drained, which can be minutes later.
+        watcher: dict = {}
 
         async def kill_when_ready(run_id: str) -> None:
             """Wait until the run has produced enough events, then kill the TaskManager.
@@ -349,6 +352,7 @@ class Experiments:
                 killed.update({"at": now_ms(), "container": service, "signal": "SIGKILL",
                                "error": f"{type(exc).__name__}: {exc}"})
                 return
+            watcher["task"] = asyncio.create_task(self._await_running(after_ms=killed["at"]))
             await bring_back()
 
         async def bring_back(grace_s: float = 20.0) -> None:
@@ -399,12 +403,22 @@ class Experiments:
             raise RunFailed(f"could not restart {service} after the kill: {restart['error']}")
 
         await self._step(exp["id"], "recover", "waiting for the job to return to RUNNING", 2, 3, r["run_id"])
-        after, running_at = await self._await_running(after_ms=killed.get("at") or now_ms())
+        if "task" in watcher:
+            after, running_at = await watcher["task"]
+        else:
+            after, running_at = await self._await_running(after_ms=killed.get("at") or now_ms())
 
         await self._step(exp["id"], "collect", "reading integrity counters", 3, 3, r["run_id"])
         stats = (await self.store.engine_stats(r["run_id"])).get("flink", {})
         persisted = int(stats.get("persisted", 0))
         recovery_ms = (running_at - killed["at"]) if (running_at and killed.get("at")) else None
+        restored_at = int((after.get("restored_from") or {}).get("restore_timestamp") or 0) or None
+        restore_ms = (restored_at - killed["at"]) if (restored_at and killed.get("at")) else None
+        # At the moment the job is back, the latest completed checkpoint is usually still the one it
+        # restored from; only a checkpoint completed after the restore counts as the first new one.
+        new_cp = after.get("last_checkpoint")
+        if not (new_cp and restored_at and int(new_cp.get("completed_at") or 0) > restored_at):
+            new_cp = None
         return {
             "run_id": r["run_id"], "rate_eps": rate, "events": r["sent"],
             "before": {"job_id": before.get("job_id"), "state": before.get("state"),
@@ -414,29 +428,34 @@ class Experiments:
             # is `after.running_at`.
             "restart": {"restarted_by": restart["restarted_by"], "at": restart["container_up_at"]},
             "after": {"state": after.get("state"), "restarts": after.get("restarts"), "running_at": running_at,
-                      "first_new_checkpoint": after.get("last_checkpoint"),
-                      "restored_from": after.get("restored_from"), "recovery_ms": recovery_ms},
+                      "first_new_checkpoint": new_cp,
+                      "restored_from": after.get("restored_from"), "restore_ms": restore_ms,
+                      "recovery_ms": recovery_ms},
             "integrity": {"sent": r["sent"], "persisted": persisted, "missing": max(r["sent"] - persisted, 0),
                           "duplicate_deliveries": int(stats.get("duplicates", 0)), "drain": r["drain"]},
             "notes": ["The TaskManager is killed with SIGKILL, so nothing is flushed on the way out; "
                       "recovery is from the last completed checkpoint, not from a clean shutdown.",
-                      "recovery_ms is measured from the kill to the job reporting RUNNING again. It "
-                      "includes the JobManager's heartbeat timeout, which dominates it."],
+                      "restore_ms is from the kill to Flink's own restore timestamp for the checkpoint "
+                      "it resumed from; recovery_ms is from the kill to the agent first seeing the "
+                      "restored job RUNNING (polled every second). Both include the JobManager's "
+                      "heartbeat timeout, which dominates them."],
         }
 
     async def _await_running(self, after_ms: int, timeout_s: float = 300.0) -> tuple[dict, int | None]:
-        """Wait for the Flink job to report RUNNING again after the kill."""
+        """Wait for the Flink job to be RUNNING again, restored from a checkpoint, after the kill.
+
+        The job state alone cannot show a recovery: straight after a SIGKILL the JobManager still
+        reports RUNNING until its heartbeat to the TaskManager times out, and under region failover the
+        job-level state can stay RUNNING throughout. A restore whose timestamp is later than the kill
+        is the evidence that the job actually went through a recovery."""
         deadline = time.monotonic() + timeout_s
-        saw_interruption = False
         last: dict = {}
         while time.monotonic() < deadline:
             last = await self._flink_job()
-            state = last.get("state")
-            if state and state != "RUNNING":
-                saw_interruption = True
-            if state == "RUNNING" and (saw_interruption or now_ms() - after_ms > 15_000):
+            restored_at = int((last.get("restored_from") or {}).get("restore_timestamp") or 0)
+            if last.get("state") == "RUNNING" and restored_at > after_ms:
                 return last, now_ms()
-            await asyncio.sleep(2.0)
+            await asyncio.sleep(1.0)
         return last, None
 
 
