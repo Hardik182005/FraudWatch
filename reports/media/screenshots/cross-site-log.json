@@ -1,0 +1,25 @@
+{
+  "checked_at": "2026-09-18T09:47:11.081Z",
+  "live": "https://fraudwatch-live-2djxmgtj5a-el.a.run.app",
+  "steps": [
+    {
+      "name": "share-link",
+      "detail": "Live's share link carries run=r_febd244cfefcf63a engine=flink (view token present: true)"
+    },
+    {
+      "name": "lab-landing",
+      "detail": "Lab landing chip reads \"Live \u00c2\u00b7 run r_febd244cfefcf63a\""
+    },
+    {
+      "name": "lab-study",
+      "detail": "Lab /study banner: \"Run selected from Live\" with run r_febd244cfefcf63a"
+    },
+    {
+      "name": "result",
+      "detail": "SYNCHRONISED: Lab shows run r_febd244cfefcf63a, the run Live started, on both the landing page and /study"
+    }
+  ],
+  "errors": [],
+  "live_run": "r_febd244cfefcf63a",
+  "synchronised": true
+}

@@ -17,8 +17,8 @@ Both scripts exit non-zero if any route is not HTTP 2xx.
 The Live capture drives the app the way a visitor does: it starts a real demo session, starts a real
 bounded `ieee_replay` run from `/scenario`, waits for the session's events-used counter to move, and
 only then photographs the console. So the Live shots and recording carry **real scored data** — at
-capture time the console read 274 scored, 80 alerts, 8 reviews, 4.6 ev/s, end-to-end p50 110 ms /
-p95 167 ms / p99 186 ms, with `R1_BURST` firing in the alert queue.
+capture time the console read 353 scored, 48 alerts, 14 reviews, 5.9 ev/s, end-to-end p50 110 ms /
+p95 163 ms / p99 188 ms, with `R1_BURST` firing in the alert queue.
 
 All 12 routes returned HTTP 200, WebGL initialised on every 3D hero, and the capture recorded
 **0 console errors** (8 remaining messages are THREE.js deprecation and WebGL performance warnings).
