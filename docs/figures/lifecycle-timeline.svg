@@ -34,13 +34,13 @@
 <text x="144.00" y="96.00" font-size="9.5" fill="#1d4ed8" font-weight="600" text-anchor="middle" opacity="1.0">visit → POST /lifecycle/ensure-ready</text>
 <line x1="732.00" y1="104.00" x2="732.00" y2="150.00" stroke="#b91c1c" stroke-width="1.4" opacity="1.0"/>
 <circle cx="732.00" cy="104.00" r="4" fill="#b91c1c"/>
-<text x="732.00" y="96.00" font-size="9.5" fill="#b91c1c" font-weight="600" text-anchor="middle" opacity="1.0">45 min with no activity</text>
+<text x="726.00" y="96.00" font-size="9.5" fill="#b91c1c" font-weight="600" text-anchor="end" opacity="1.0">45 min with no activity</text>
 <line x1="816.00" y1="104.00" x2="816.00" y2="150.00" stroke="#b91c1c" stroke-width="1.4" opacity="1.0"/>
 <circle cx="816.00" cy="104.00" r="4" fill="#b91c1c"/>
 <text x="816.00" y="96.00" font-size="9.5" fill="#b91c1c" font-weight="600" text-anchor="middle" opacity="1.0">Cloud Tasks idle timer fires</text>
 <text x="60.00" y="268.00" font-size="10.5" fill="#111827" font-weight="400" text-anchor="start" opacity="1.0">Counts as activity: POST /lifecycle/ensure-ready, POST /lifecycle/activity, and proxied POST/PATCH API calls. Passive GET polling does not keep the VM awake.</text>
 <text x="60.00" y="288.00" font-size="10.5" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">Guards: 10 wakes / 10 min per hashed client IP · 24 wakes/day · 12 uptime hours/day · 60 s cooldown after a failed start · operator keep-awake ≤ 180 min.</text>
 <text x="60.00" y="308.00" font-size="10.5" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">A failure at any startup stage moves to `failed`; the next visit retries after the cooldown. On reboot the Flink submitter restores from the newest complete checkpoint.</text>
-<text x="60.00" y="334.00" font-size="10" fill="#b91c1c" font-weight="400" text-anchor="start" opacity="1.0">Segment widths are illustrative. No wake, ready or stop duration has been measured — see docs/status-checklist.md item 10.</text>
+<text x="60.00" y="334.00" font-size="10" fill="#b91c1c" font-weight="400" text-anchor="start" opacity="1.0">Segment widths are illustrative, not to scale. Measured on GCP: cold wake ~25 s (wake-39bed768b949), idle stop after 45 min 28 s, VM stop 42.2 s — docs/measured-results.md §4–§5.</text>
 <text x="24.00" y="388.00" font-size="9.5" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">Source: .env.example PIPELINE_* defaults · services/controller/app.py</text>
 </svg>

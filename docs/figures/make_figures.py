@@ -382,14 +382,16 @@ def fig_lifecycle():
             svg.text(cx + (w - 3) / 2, y + 66 + j * 13, ln, size=9, fill=MUTED, anchor="middle")
         cx += w
 
-    def mark(frac, label, colour):
+    def mark(frac, label, colour, anchor="middle"):
         x = x0 + (x1 - x0) * frac
         svg.line(x, y - 46, x, y, colour, 1.4)
         svg.dot(x, y - 46, 4, colour)
-        svg.text(x, y - 54, label, size=9.5, fill=colour, weight="600", anchor="middle")
+        # A mark close to its neighbour can anchor its label away from it so the two cannot overlap.
+        dx = {"end": -6, "start": 6}.get(anchor, 0)
+        svg.text(x + dx, y - 54, label, size=9.5, fill=colour, weight="600", anchor=anchor)
 
     mark(0.10, "visit → POST /lifecycle/ensure-ready", ACCENT)
-    mark(0.80, "45 min with no activity", ALERT)
+    mark(0.80, "45 min with no activity", ALERT, anchor="end")
     mark(0.90, "Cloud Tasks idle timer fires", ALERT)
 
     svg.text(60, 268, "Counts as activity: POST /lifecycle/ensure-ready, POST /lifecycle/activity, and proxied "
@@ -399,8 +401,9 @@ def fig_lifecycle():
     svg.text(60, 308, "A failure at any startup stage moves to `failed`; the next visit retries after the "
                       "cooldown. On reboot the Flink submitter restores from the newest complete checkpoint.",
              size=10.5, fill=MUTED)
-    svg.text(60, 334, "Segment widths are illustrative. No wake, ready or stop duration has been measured — "
-                      "see docs/status-checklist.md item 10.", size=10, fill=ALERT)
+    svg.text(60, 334, "Segment widths are illustrative, not to scale. Measured on GCP: cold wake ~25 s "
+                      "(wake-39bed768b949), idle stop after 45 min 28 s, VM stop 42.2 s — docs/measured-results.md §4–§5.",
+             size=10, fill=ALERT)
     footer(svg, ".env.example PIPELINE_* defaults · services/controller/app.py")
     svg.save("lifecycle-timeline.svg")
 

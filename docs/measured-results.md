@@ -221,15 +221,15 @@ the *subsequent* API calls that failed.
 
 With the pipeline woken from `sleeping` and a bounded `ieee_replay` run started from `/scenario`, the
 Live console rendered real data rather than an empty shell. Read off the captured console at
-13:15:47 UTC, session `s_ZAl53i5pLU`, run `r_ecb1798ad9`:
+07:54 UTC (13:24 IST), session `s_A6CL0nG8Pu`, run `r_e3ec03db2a`:
 
 | Panel | Value shown |
 |---|---|
-| Scored | 274 (186 allowed, 0 unscored) |
-| Alerts | 80, with 0 late events |
-| Reviews | 8 queued |
-| Throughput (last 1 min) | 4.6 ev/s |
-| End-to-end latency | p50 **110 ms**, p95 **167 ms**, p99 **186 ms** (274 events, last 300 s) |
+| Scored | 353 (291 allowed, 0 unscored) |
+| Alerts | 48, with 0 late events |
+| Reviews | 14 queued |
+| Throughput (last 1 min) | 5.9 ev/s |
+| End-to-end latency | p50 **110 ms**, p95 **163 ms**, p99 **188 ms** (353 events, last 300 s) |
 
 The alert queue shows per-alert scores, engine `Flink`, and `R1_BURST` firing on many rows. The
 1-minute event-time window panel correctly read "No closed windows yet — a window is emitted once the
@@ -239,6 +239,22 @@ Two caveats on these numbers. They are a **live UI reading at one instant**, not
 benchmark: the run was still in flight, so the counts are a snapshot, not a total. And the latency
 percentiles are the deployed pipeline at the scenario's own rate — they agree closely with the Flink
 figures in §1 (p50 92 ms, p95 155 ms) but were not produced under the §1 protocol.
+
+### 7.3 Cross-site synchronisation (Live → Lab)
+
+`scripts/verify_cross_site.mjs`, 2026-09-18 09:47 UTC, deployed origins, real Chromium. The script starts
+a demo session and a bounded run on Live, clicks **Open in Lab** (which mints a read-only share link via
+`POST /sessions/{id}/share`), and follows the link.
+
+| Check | Result |
+|---|---|
+| Run carried in Live's share link | `r_febd244cfefcf63a`, engine `flink`, view token present |
+| Lab landing-page chip | "Live · run r_febd244cfefcf63a" |
+| Lab `/study` | "Shared Live context" banner and "Run selected from Live" naming `r_febd244cfefcf63a` |
+| Console errors (both sites) | 0 |
+
+Lab was opened in a separate tab and read the run from the link and the shared backend, not from Live's
+browser state. Log and screenshots: `reports/media/screenshots/cross-site-*`.
 
 ## What is still not measured
 
