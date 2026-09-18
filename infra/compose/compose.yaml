@@ -136,6 +136,35 @@ services:
       GENERATOR_MAX_ACTIVE_RUNS: ${GENERATOR_MAX_ACTIVE_RUNS:-25}
     mem_limit: 512m
 
+  ops-agent:
+    image: ${IMAGE_PREFIX:-fraudwatch}/ops-agent:${IMAGE_TAG:-1.0.0}
+    build: { context: ../.., dockerfile: services/ops-agent/Dockerfile }
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      postgres: { condition: service_healthy }
+      generator: { condition: service_started }
+    environment:
+      <<: *service-env
+      GENERATOR_URL: http://generator:8002
+      FLINK_REST_URL: ${FLINK_REST_URL:-http://flink-jobmanager:8081}
+      SPARK_TRIGGER_INTERVAL: ${SPARK_TRIGGER_INTERVAL:-1 second}
+      SPARK_SERVICE: spark
+      FLINK_JOBMANAGER_SERVICE: flink-jobmanager
+      FLINK_TASKMANAGER_SERVICE: flink-taskmanager
+      OPS_AGENT_POLL_SECONDS: ${OPS_AGENT_POLL_SECONDS:-3}
+      OPS_AGENT_STALE_MINUTES: ${OPS_AGENT_STALE_MINUTES:-90}
+      WATERMARK_BOUND_MS: ${WATERMARK_BOUND_MS:-}
+    # The agent starts and stops the Spark container and injects TaskManager faults, so it needs the
+    # Docker Engine API. It runs as an unprivileged uid that joins the group owning the socket.
+    # Docker Desktop exposes the socket as root:root, which is why the default is 0; on a Linux host
+    # (including the GCP VM) set DOCKER_GID in .env to `getent group docker | cut -d: -f3`, or the
+    # agent starts with Docker unreachable and says so in /healthz.
+    user: "10001:${DOCKER_GID:-0}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    mem_limit: 384m
+
   result-consumer:
     image: ${IMAGE_PREFIX:-fraudwatch}/result-consumer:${IMAGE_TAG:-1.0.0}
     build: { context: ../.., dockerfile: services/result-consumer/Dockerfile }

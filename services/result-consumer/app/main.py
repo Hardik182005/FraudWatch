@@ -63,6 +63,27 @@ def alert_from_row(r: dict) -> dict:
                               "updated_at")} | {"id": str(r["id"]), "rules_fired": list(r["rules_fired"])}
 
 
+def parse_window(rec: dict) -> dict:
+    """Validate a window aggregate before the transaction touches it.
+
+    A window used to be validated only by the INSERT, so one unusable record — for instance a
+    schema 1.0 window still carrying ``amount_sum_inr`` from before the dataset override — raised
+    inside the transaction and failed the whole batch. The batch then retried forever and the
+    pipeline stopped persisting anything. Anything unusable now goes to the DLQ like any other bad
+    record, and the rest of the batch is unaffected.
+    """
+    if rec.get("record_type") != "window":
+        raise ValueError("record_type must be window")
+    if "amount_sum" not in rec and "amount_sum_inr" in rec:
+        raise ValueError("schema 1.0 window (amount_sum_inr): amounts in the retired INR convention "
+                         "are not comparable with the IEEE-CIS source amounts and are not persisted")
+    return {"demo_session_id": rec["demo_session_id"], "window_start": int(rec["window_start"]),
+            "window_end": int(rec["window_end"]), "txn_count": int(rec["txn_count"]),
+            "amount_sum": float(rec["amount_sum"]), "alert_count": int(rec["alert_count"]),
+            "review_count": int(rec["review_count"]), "unscored_count": int(rec.get("unscored_count", 0)),
+            "emitted_at": rec.get("emitted_at")}
+
+
 def parse_result(rec: dict, engine: str, persisted_at: int) -> dict:
     """Flatten an engine output record (contracts section 5) into a scored_events row."""
     if rec.get("record_type") != "scored_txn":
@@ -125,7 +146,7 @@ def persist_batch(conn, msgs: list) -> None:
             if topic in RESULT_TOPICS:
                 results.append(parse_result(rec, RESULT_TOPICS[topic], persisted_at))
             elif topic in WINDOW_TOPICS:
-                windows.append((WINDOW_TOPICS[topic], rec))
+                windows.append((WINDOW_TOPICS[topic], parse_window(rec)))
             elif topic == settings.TOPIC_DLQ:
                 dlq.append((rec, m))
             elif topic == settings.TOPIC_SPARK_METRICS:
