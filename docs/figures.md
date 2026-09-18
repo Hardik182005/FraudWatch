@@ -51,11 +51,14 @@ safe to embed in a Markdown page, drop into a slide deck, or convert to PNG/PDF.
 These are absent on purpose. Adding them requires running the harness in
 [`docs/benchmark-methodology.md`](benchmark-methodology.md) and committing the output.
 
-- **Throughput** (events/second sustained) for any engine — `_not measured yet_`.
-- **Latency percentiles** (p50 / p95 / p99) per engine — `_not measured yet_`. The probe numbers on
-  the System Intelligence panel are a handful of single requests, not a percentile distribution.
-- **Flink vs Spark comparison** on identical input — `_not measured yet_`. The Spark path exists
-  and runs, but no side-by-side measurement has been recorded, so no figure compares them.
+- **Throughput** (events/second sustained) for any engine — `_not measured yet_`. The measured runs
+  were rate-limited by the generator, so they measure latency at a fixed low arrival rate only.
+- **p99 latency** per engine — `_not measured yet_`. p50 and p95 for both engines are recorded in
+  [`measured-results.md`](measured-results.md); the probe numbers on the System Intelligence panel are
+  a handful of single requests and are not a percentile distribution.
+- **Flink vs Spark comparison** — measured, but **not plotted**. The numbers (500/500 decision
+  agreement, e2e p50 92 ms vs 3862 ms, run `r_d48339d70bb9ceb4`) are in
+  [`measured-results.md`](measured-results.md); no figure in this directory draws them yet.
 - **Cost figures in money.** Cloud usage is drawn from Free Trial credit; credit consumption is not
   money charged, and no figure states a currency amount.
 - **A calibrated probability.** The calibration figure is included precisely to show the score is

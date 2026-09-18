@@ -41,7 +41,8 @@ Transactions replayed from the IEEE-CIS Fraud Detection dataset are published to
 [![Playwright 1.63.0](https://img.shields.io/badge/Playwright-1.63.0-2EAD33?logo=playwright&logoColor=white)](https://playwright.dev/)
 [![CI none configured](https://img.shields.io/badge/CI-none%20configured-lightgrey)](#testing)
 [![license none granted](https://img.shields.io/badge/license-none%20granted-lightgrey)](#license-and-academic-integrity)
-[![benchmarks not measured yet](https://img.shields.io/badge/benchmarks-not%20measured%20yet-critical)](docs/benchmark-methodology.md)
+[![engine comparison measured](https://img.shields.io/badge/engine%20comparison-measured%20on%20GCP-success)](docs/measured-results.md)
+[![throughput not measured yet](https://img.shields.io/badge/throughput-not%20measured%20yet-critical)](docs/benchmark-methodology.md)
 
 </div>
 
@@ -131,7 +132,7 @@ local stack is an exact substitute apart from the wake step.
 | **Storage / API** | PostgreSQL 17.11 + FastAPI `/api/v1` with Server-Sent Events |
 | **Frontend** | two React 19 + Vite 8 sites sharing `packages/ui` and `packages/contracts`, with `three` / `@react-three/fiber` 3D scenes |
 | **Cloud** | Cloud Run (min-instances 0) plus one Compute Engine VM woken on visit and stopped after 45 idle minutes, on Free Trial credit |
-| **Engine benchmark** | **_not measured yet_** — the experiment runner (`services/ops-agent/app/`) is an empty directory |
+| **Engine comparison** | measured on GCP over one identical 500-record stream: **500/500 decision agreement**, max score difference `0.000000000`; e2e p50 **Flink 92 ms vs Spark 3862 ms** ([`docs/measured-results.md`](docs/measured-results.md)). Throughput at saturation is **_not measured yet_**, and the experiment runner (`services/ops-agent/app/`) is still an empty directory |
 
 ---
 
@@ -1173,8 +1174,9 @@ benchmark**: it says nothing about throughput and it is not a Flink-vs-Spark com
 | Latency probes, run 2 (after recovery) | **5/5 succeeded**, max **168 ms** |
 
 The probe figures are `e2e_ms` values: **producer-to-database wall-clock for the whole path**, not
-Flink-internal processing time. Five requests are not a percentile distribution — **p50/p95/p99 remain
-`_not measured yet_`**, as does throughput.
+Flink-internal processing time. Five requests are not a percentile distribution; percentiles from a
+larger run are in [`docs/measured-results.md`](docs/measured-results.md). Throughput at saturation
+remains **_not measured yet_**.
 
 Two bugs were found and fixed while running this:
 
@@ -1223,11 +1225,13 @@ Full provenance per figure, and the explicit list of what the figures deliberate
 
 1. `services/ops-agent/app/` is an **empty directory**. The experiment runner that
    `POST /api/v1/experiments` is specified against does not exist, so `comparison`, `late_events` and
-   `recovery` experiments cannot run.
-2. The `spark` service sits behind a Compose profile and is not started by a default `up -d`; a
-   comparison requires both engines consuming the same input.
+   `recovery` experiments cannot be launched from the API. The comparison that *was* run was
+   orchestrated by hand against the generator — see [`docs/measured-results.md`](docs/measured-results.md).
+2. The `spark` service sits behind a Compose profile and is not started by a default `up -d`; it was
+   started explicitly (`--profile spark`) for the measured run.
 
-So every throughput and latency figure in this project is, today, **_not measured yet_**.
+So the engine comparison is measured and recorded, but **throughput at saturation, p99 latency and
+behaviour under backpressure are, today, _not measured yet_**.
 
 What the repository *does* provide is the design that makes a fair comparison possible: the same Kafka
 topic with `LogAppendTime`, independent consumer groups, producer-assigned `event_id`s joined by a
@@ -1318,12 +1322,12 @@ requirement depends on staying on the trial.
 
 - **The experiment runner is not implemented.** `services/ops-agent/app/` is an empty directory.
   `POST /api/v1/experiments` inserts a `queued` row and nothing advances it;
-  `POST /api/v1/ops/spark/start|stop` would fail to reach `OPS_AGENT_URL`. Consequently **no
-  Flink-vs-Spark benchmark numbers exist in this repository** — the methodology is documented in
-  [`docs/benchmark-methodology.md`](docs/benchmark-methodology.md), but the measurements are
+  `POST /api/v1/ops/spark/start|stop` would fail to reach `OPS_AGENT_URL`. The Flink-vs-Spark
+  comparison in [`docs/measured-results.md`](docs/measured-results.md) was therefore run **by hand** on
+  the GCP VM, not through the API, so it is not reproducible from the UI.
+- **Latency is measured; throughput is not.** The measured run was rate-limited to 10 events/second, so
+  it says nothing about sustained events/second at saturation, p99, or backpressure — those remain
   **_not measured yet_**.
-- **No throughput or latency figures are published here.** `e2e_ms` percentiles are computed live from
-  PostgreSQL by the API; nothing is committed, so this README quotes none.
 - **Model quality is modest and stated as measured.** PR-AUC 0.1375 on a 3.48%-positive test split and
   precision 0.151 at the alert threshold are real, unflattering numbers. Alert + review together catch
   about 48% of the fraud — roughly half is missed. On accounts never seen in training, recall at the
@@ -1373,6 +1377,7 @@ A per-item status table — done / partial / not started, conservatively marked 
 | [`docs/gcp-deployment.md`](docs/gcp-deployment.md) | wake-on-visit, idle shutdown, IAM, cost estimates (credit, not money), rollback, cleanup |
 | [`docs/model-card.md`](docs/model-card.md) | task, data, chronological split, features, rules, thresholds, test metrics, cold-start slice, hyperparameters, intended use, limitations, and what is *not* measured |
 | [`docs/benchmark-methodology.md`](docs/benchmark-methodology.md) | what a fair Flink-vs-Spark comparison requires here, what `e2e_ms` means, and what such a result would not prove |
+| [`docs/measured-results.md`](docs/measured-results.md) | every number actually measured on the deployed GCP stack, with run ids: engine parity, late events, checkpoint recovery, wake timing — and an explicit list of what is still unmeasured |
 | [`docs/contracts.md`](docs/contracts.md) | Kafka payloads, scoring API, `/api/v1` REST + SSE surface, export shapes |
 | [`docs/demo-script.md`](docs/demo-script.md) | 5–7 minute walkthrough, plus the questions you will be asked and their honest answers |
 | [`docs/figures.md`](docs/figures.md) | the nine generated figures, the exact artifact or command each number came from, and what they deliberately do not show |

@@ -96,12 +96,23 @@ export function ScenarioPage() {
   };
 
   if (mode === 'none') {
+    // The gate still renders the page heading: every route keeps exactly one h1 so the document
+    // outline and the screen-reader landmark stay correct even when there is nothing to show.
     return (
-      <Card>
-        <EmptyState title="Start a demo to control scenarios" icon={<SlidersHorizontal size={22} aria-hidden="true" />} action={<Link className="fw-btn fw-btn-primary" to="/console">Go to Start demo</Link>}>
-          Scenario controls act on your own demo session.
-        </EmptyState>
-      </Card>
+      <div className="fw-stack" style={{ gap: 16 }}>
+        <div className="fw-page-head">
+          <div>
+            <div className="fw-eyebrow">Scenario controls</div>
+            <h1>Scenario</h1>
+            <p>Replay held-out IEEE-CIS records into your session, inject known delivery and fraud patterns, and replay a run with the same seed.</p>
+          </div>
+        </div>
+        <Card>
+          <EmptyState title="Start a demo to control scenarios" icon={<SlidersHorizontal size={22} aria-hidden="true" />} action={<Link className="fw-btn fw-btn-primary" to="/console">Go to Start demo</Link>}>
+            Scenario controls act on your own demo session.
+          </EmptyState>
+        </Card>
+      </div>
     );
   }
 

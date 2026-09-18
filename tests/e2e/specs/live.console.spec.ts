@@ -24,7 +24,7 @@ test.describe('FraudWatch Live console', () => {
     await page.goto('/console');
     // Whatever the backend does, the page must show either real data or an explicit error/empty state.
     const anyState = page.locator(
-      '[data-testid="overview-stats"], [data-testid="error-strip"], [data-testid="wake-banner"], .fw-error, .fw-empty, .fw-skeleton',
+      '[data-testid="overview-stats"], [data-testid="overview-intro"], [data-testid="error-strip"], [data-testid="wake-banner"], .fw-error, .fw-empty, .fw-skeleton',
     );
     await expect(anyState.first()).toBeVisible({ timeout: 20_000 });
     const body = await page.locator('main, [role="main"]').first().innerText();
@@ -47,7 +47,9 @@ test.describe('FraudWatch Live console', () => {
   test('theme toggle switches the document theme and persists across a reload', async ({ page }) => {
     await page.goto('/console');
     const before = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
-    await page.getByRole('button', { name: /theme|dark|light/i }).first().click();
+    // The toggle is an accessible radiogroup (Light / Dark / System), not a single button.
+    const group = page.getByRole('radiogroup', { name: /theme/i }).first();
+    await group.getByRole('radio', { name: before === 'dark' ? /^Light$/ : /^Dark$/ }).click();
     await expect
       .poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme')))
       .not.toBe(before);

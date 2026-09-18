@@ -36,7 +36,7 @@ export function OverviewPage() {
 function Intro() {
   const { startDemo, starting, startError, config } = useSession();
   return (
-    <div className="fw-stack" style={{ gap: 20 }}>
+    <div className="fw-stack" style={{ gap: 20 }} data-testid="overview-intro">
       <div className="fw-page-head">
         <div>
           <div className="fw-eyebrow">Real-time fraud detection demo</div>

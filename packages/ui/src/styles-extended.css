@@ -509,3 +509,20 @@
 /* ---------- Architecture figures ---------- */
 .fw-arch svg { width: 100%; height: auto; display: block; min-width: 560px; }
 .fw-arch-wrap { overflow-x: auto; }
+
+/* ---- Exportable architecture figures ---- */
+.fw-figure {
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.fw-figure-canvas {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 0.5rem;
+}
+.fw-figure-canvas > svg {
+  min-width: 560px;
+}

@@ -30,6 +30,9 @@ export default defineConfig({
     {
       name: 'live',
       testMatch: /live\..*\.spec\.ts/,
+      // The responsive spec asserts phone-only behaviour (the 2D scene under 640px), so it belongs
+      // to the mobile project alone; running it at 1280px asserted something that is not true there.
+      testIgnore: /live\.responsive\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], baseURL: `http://127.0.0.1:${LIVE_PORT}` },
     },
     {
@@ -45,14 +48,14 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: `npm run preview:live -- --port ${LIVE_PORT}`,
+      command: `npm run preview:live -- --port ${LIVE_PORT} --host 127.0.0.1`,
       url: `http://127.0.0.1:${LIVE_PORT}/`,
       cwd: '../..',
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },
     {
-      command: `npm run preview:lab -- --port ${LAB_PORT}`,
+      command: `npm run preview:lab -- --port ${LAB_PORT} --host 127.0.0.1`,
       url: `http://127.0.0.1:${LAB_PORT}/`,
       cwd: '../..',
       reuseExistingServer: !process.env.CI,

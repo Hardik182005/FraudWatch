@@ -1,9 +1,11 @@
 import type { EvalReport, Experiment, ExperimentKind, ModelMetadata, ModelResultsResponse, RunComparison, RunLate } from '@fraudwatch/contracts';
 import { useApi } from '@fraudwatch/contracts/react';
 import {
-  Banner, Button, Card, Disclosure, EmptyState, ErrorState, Field, KeyValue,
-  LoadingSkeleton, ObjectKeyValue, PipelineDiagram, Stat, StatusPill, buttonClass,
+  ArchitectureFigures, Banner, Button, Card, ClassBalance, ConfusionHeatmap, Disclosure, EmptyState,
+  ErrorState, Field, GlobalImportance, KeyValue, LoadingSkeleton, ModelComparison, ObjectKeyValue,
+  PRCurve, PipelineDiagram, Stat, StatusPill, ThresholdTradeoff, buttonClass,
   formatInt, formatMs, formatNumber, formatPct, formatTimestamp,
+  type CurveSeries, type EvalMeta, type ModelMetricRow,
 } from '@fraudwatch/ui';
 import { ArrowRight, BookOpen, Download, ExternalLink, FlaskConical, LockKeyhole, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
@@ -55,7 +57,7 @@ export function Ca1Page() {
     {model.status === 'error' ? <ErrorState error={model.error} onRetry={model.refetch} /> : null}
     {results.status === 'error' ? <ErrorState error={results.error} title="Evaluation results unavailable" onRetry={results.refetch} /> : null}
     {model.data && <Dataset model={model.data} />}
-    {stream && report && <Evaluation results={stream} report={report} />}
+    {stream && report && <Evaluation results={stream} report={report} model={model.data ?? null} unseen={stream.test_unseen_accounts ?? null} />}
     <div className="fw-grid fw-grid-3">
       <Concept n="1" title="Model evidence">TreeSHAP contributions explain which model inputs moved this model score. They are associations, not causes.</Concept>
       <Concept n="2" title="Rule evidence">Burst, profile-deviation and card-testing rules inspect explicit state. Their reasons stay separate from model attribution.</Concept>
@@ -79,8 +81,40 @@ function Dataset({ model }: { model: ModelMetadata }) {
   </Card>;
 }
 
-function Evaluation({ results, report }: { results: NonNullable<ModelResultsResponse['stream']>; report: EvalReport }) {
+const CURVE_COLORS = ['var(--chart-1)', 'var(--unscored)', 'var(--chart-4)'];
+
+function evalMeta(results: NonNullable<ModelResultsResponse['stream']>, model: ModelMetadata | null, split: string): EvalMeta {
+  return {
+    modelVersion: results.model_version,
+    dataset: (model?.dataset?.dataset as string | undefined) ?? null,
+    split,
+    threshold: results.thresholds.alert,
+    artifact: model?.feature_spec ?? null,
+    evaluatedAt: model?.trained_at_unix ? formatTimestamp(model.trained_at_unix * 1000) : null,
+  };
+}
+
+function Evaluation({ results, report, model, unseen }: { results: NonNullable<ModelResultsResponse['stream']>; report: EvalReport; model: ModelMetadata | null; unseen: EvalReport | null }) {
   const t = report.at_threshold;
+  const meta = evalMeta(results, model, 'chronological held-out test');
+  const entries = Object.entries(results.test);
+  const series: CurveSeries[] = entries.map(([name, r], i) => ({
+    id: name,
+    label: name === results.selected ? `${name} (deployed)` : name,
+    points: r.curves?.pr ?? [],
+    color: CURVE_COLORS[i % CURVE_COLORS.length],
+    auc: r.pr_auc,
+    operating: { recall: r.at_threshold.recall, precision: r.at_threshold.precision, threshold: r.at_threshold.threshold },
+  }));
+  const rows: ModelMetricRow[] = entries.map(([name, r]) => ({
+    model: name === results.selected ? `${name} (deployed)` : name,
+    pr_auc: r.pr_auc,
+    roc_auc: r.roc_auc,
+    precision: r.at_threshold.precision,
+    recall: r.at_threshold.recall,
+    f1: r.at_threshold.f1,
+  }));
+  const importance = model?.feature_importance_gain ?? [];
   return <>
     <div className="fw-grid fw-grid-4">
       <Stat label="Test PR-AUC" value={formatNumber(report.pr_auc, 3)} note="Primary imbalanced-class ranking metric" />
@@ -93,10 +127,29 @@ function Evaluation({ results, report }: { results: NonNullable<ModelResultsResp
         {Object.entries(results.candidates).map(([name, c]) => <tr key={name}><td><strong>{name}</strong></td><td>{formatNumber(c.validation_pr_auc, 4)}</td><td>{c.imbalance_handling ?? '—'}</td><td>{name === results.selected ? <StatusPill tone="allow">Selected</StatusPill> : '—'}</td></tr>)}
       </tbody></table></div>
     </Card>
-    <Card title="Held-out confusion matrix" description={`Final test set · n=${formatInt(report.n)}`}>
-      <div className="fw-matrix"><div className="fw-matrix-h" /><div className="fw-matrix-h">Predicted ordinary</div><div className="fw-matrix-h">Predicted fraud</div><div className="fw-matrix-h">Actual ordinary</div><div><strong>{formatInt(t.confusion_matrix.tn)}</strong>TN</div><div><strong>{formatInt(t.confusion_matrix.fp)}</strong>FP</div><div className="fw-matrix-h">Actual fraud</div><div><strong>{formatInt(t.confusion_matrix.fn)}</strong>FN</div><div><strong>{formatInt(t.confusion_matrix.tp)}</strong>TP</div></div>
-      <p className="fw-muted fw-small fw-space-top">Accuracy alone is misleading because only {formatPct(report.prevalence)} of this held-out set is fraud. PR-AUC, precision and recall show the useful minority-class trade-off.</p>
-    </Card>
+    <div className="fw-grid fw-grid-2">
+      <ConfusionHeatmap
+        cm={t.confusion_matrix}
+        reported={{ n: report.n, positives: report.positives, precision: t.precision, recall: t.recall, f1: t.f1 }}
+        meta={meta}
+      />
+      <ClassBalance ordinary={report.n - report.positives} fraud={report.positives} meta={meta} />
+    </div>
+    <PRCurve series={series} prevalence={report.prevalence} meta={meta} />
+    {rows.length > 1 && <ModelComparison rows={rows} meta={meta} title="Logistic-regression baseline vs LightGBM" />}
+    <ThresholdTradeoff points={null} selected={results.thresholds.alert} meta={meta} />
+    {importance.length > 0 && <GlobalImportance items={importance} meta={meta} />}
+    <Card title="Training and scoring paths" description="Static figure of how the artifact reaches the stream; export it for a report"><ArchitectureFigures only={['model-paths']} /></Card>
+    {unseen && <Card title="Accounts never seen in training" description="The same model and threshold, scored only on pseudonymous accounts absent from the training split">
+      <div className="fw-grid fw-grid-4">
+        <Stat label="PR-AUC" value={formatNumber(unseen.pr_auc, 4)} note={`n=${formatInt(unseen.n)}`} />
+        <Stat label="Precision" value={formatPct(unseen.at_threshold.precision)} note="Same fixed threshold" />
+        <Stat label="Recall" value={formatPct(unseen.at_threshold.recall)} note={`${formatInt(unseen.at_threshold.confusion_matrix.tp)} true positives`} />
+        <Stat label="Prevalence" value={formatPct(unseen.prevalence)} note="Fraud share of this slice" />
+      </div>
+      <p className="fw-muted fw-small fw-space-top">This slice is the honest generalisation check: the account key is derived from the record itself, so a model can otherwise look better than it is by recognising accounts it has already seen.</p>
+    </Card>}
+    <Banner tone="warn">Every figure on this page is read from the evaluation artifact served with the deployed model. Where the artifact has no data — the validation threshold sweep, for instance — the chart says so instead of drawing something.</Banner>
   </>;
 }
 
@@ -116,6 +169,7 @@ export function Ca2Page() {
       <Card title="Checkpointing is not a blanket exactly-once claim"><p>Flink checkpoints coordinate Kafka offsets and managed state. The HTTP scoring call and durable database writes cross external systems, so FraudWatch separately records retries and uses stable IDs plus database upserts for idempotency.</p></Card>
       <Card title="Comparison boundary"><p>End-to-end delay starts at the documented ingestion timestamp and ends when the result becomes durable. Browser refresh time is excluded. Both engines must process matching IDs before latency is interpreted.</p></Card>
     </div>
+    <Card title="Engine paths, side by side" description="Static figure of the two consumption paths; export it for a report"><ArchitectureFigures only={['engine-paths']} /></Card>
     <Card title="Inspect actual behavior" actions={<Link className={buttonClass('primary')} to="/experiments">Open experiment lab <ArrowRight size={16} /></Link>}><p className="fw-muted">A selected Live run enables parity, latency and late-event inspection. Until an experiment completes, charts stay empty instead of displaying invented results.</p></Card>
   </div>;
 }
@@ -167,7 +221,7 @@ export function ArchitecturePage() {
   const { health } = useLab();
   const architecture = useApi(() => api.getArchitecture(), []);
   const explanations: Record<string, string> = { generator:'Produces reproducible scenarios and applies session caps.',kafka:'Durable event log shared by independent engine consumer groups.',flink:'Primary true-stream processor with event-time state and checkpoints.',spark:'Operator-triggered Structured Streaming micro-batch comparison.',scoring:'Loads the versioned preprocessing and LightGBM artifact.',result_consumer:'Deduplicates stable record IDs and persists results.',postgres:'Server-owned sessions, runs, predictions, alerts, audits and evidence.',api:'Authenticated HTTP and resumable SSE boundary for both websites.',live:'Operational monitoring and investigation interface.',lab:'Academic concepts, experiments and measured evidence.' };
-  return <div className="fw-stack fw-lab-page"><PageHead eyebrow="Shared system" title="Architecture explorer">Select any component to see its runtime status, configuration and role. The 3D scene lazy-loads; 2D is always available.</PageHead><PipelineDiagram architecture={architecture.data} health={health.data} loading={architecture.status === 'loading'} error={architecture.error} onRetry={() => { architecture.refetch(); health.refetch(); }} explain={(id) => <p className="fw-muted fw-small">{explanations[id] ?? 'Runtime component reported by the architecture API.'}</p>} /></div>;
+  return <div className="fw-stack fw-lab-page"><PageHead eyebrow="Shared system" title="Architecture explorer">Select any component to see its runtime status, configuration and role. The 3D scene lazy-loads; 2D is always available.</PageHead><PipelineDiagram architecture={architecture.data} health={health.data} loading={architecture.status === 'loading'} error={architecture.error} onRetry={() => { architecture.refetch(); health.refetch(); }} explain={(id) => <p className="fw-muted fw-small">{explanations[id] ?? 'Runtime component reported by the architecture API.'}</p>} /><Card title="Exportable architecture figures" description="Static, print-safe SVGs of the same system — each one can be copied or downloaded for a report"><ArchitectureFigures /></Card></div>;
 }
 
 const QUESTIONS = [

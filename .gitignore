@@ -43,3 +43,7 @@ ml/data/processed/
 ml/results/*.tmp
 # IEEE-CIS replay pack (row-level Kaggle-derived data; built by ml/training/build_replay_pack.py)
 ml/artifacts/replay/
+
+# Playwright output
+test-results/
+tests/e2e/report/

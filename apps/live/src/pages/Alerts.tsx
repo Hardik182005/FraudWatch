@@ -129,12 +129,23 @@ export function AlertsPage() {
   };
 
   if (mode === 'none') {
+    // The gate still renders the page heading: every route keeps exactly one h1 so the document
+    // outline and the screen-reader landmark stay correct even when there is nothing to show.
     return (
-      <Card>
-        <EmptyState title="Start a demo to see alerts" icon={<Bell size={22} aria-hidden="true" />} action={<Link className="fw-btn fw-btn-primary" to="/console">Go to Start demo</Link>}>
-          Alerts belong to a demo session. Start one from the overview.
-        </EmptyState>
-      </Card>
+      <div className="fw-stack" style={{ gap: 16 }}>
+        <div className="fw-page-head">
+          <div>
+            <div className="fw-eyebrow">Human review queue</div>
+            <h1>Alerts</h1>
+            <p>Transactions the review policy routed to alert or review. Open one to see its evidence and record a decision.</p>
+          </div>
+        </div>
+        <Card>
+          <EmptyState title="Start a demo to see alerts" icon={<Bell size={22} aria-hidden="true" />} action={<Link className="fw-btn fw-btn-primary" to="/console">Go to Start demo</Link>}>
+            Alerts belong to a demo session. Start one from the overview.
+          </EmptyState>
+        </Card>
+      </div>
     );
   }
 

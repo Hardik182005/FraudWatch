@@ -178,7 +178,8 @@ export interface CurveSeries {
 
 export function PRCurve({ series, prevalence, meta, source = 'heldout' }: { series: CurveSeries[]; prevalence: number | null; meta: EvalMeta; source?: SourceKind }) {
   const usable = series.filter((s) => s.points.length > 1);
-  if (!usable.length) {
+  const markers = series.filter((s) => s.operating);
+  if (!usable.length && !markers.length) {
     return (
       <VizFrame title="Precision-recall curve" source={source} summary="No curve points available.">
         <VizEmpty kind="unavailable" title="No precision-recall points in the evaluation artifact">The model results file does not include curve points for this split.</VizEmpty>
@@ -193,7 +194,7 @@ export function PRCurve({ series, prevalence, meta, source = 'heldout' }: { seri
       testId="pr-curve"
       meta={<EvalMetaLine meta={meta} />}
       csvName="precision-recall.csv"
-      summary={`Precision-recall curves for ${usable.map((s) => `${s.label} (PR-AUC ${s.auc != null ? formatNumber(s.auc, 3) : 'not reported'})`).join(', ')}. Prevalence reference ${prevalence != null ? formatPct(prevalence) : 'not reported'}.`}
+      summary={`Precision-recall curves for ${(usable.length ? usable : markers).map((s) => `${s.label} (PR-AUC ${s.auc != null ? formatNumber(s.auc, 3) : 'not reported'})`).join(', ')}. Prevalence reference ${prevalence != null ? formatPct(prevalence) : 'not reported'}.`}
       table={{ columns: [{ key: 'model', label: 'Model' }, { key: 'recall', label: 'Recall', align: 'right', format: (v) => formatNumber(Number(v), 4) }, { key: 'precision', label: 'Precision', align: 'right', format: (v) => formatNumber(Number(v), 4) }], rows }}
       footer={prevalence != null ? `Dashed line: prevalence (${formatPct(prevalence, 2)}) = precision of random ranking. Dot: fixed operating threshold chosen on validation.` : undefined}
     >
@@ -209,7 +210,7 @@ export function PRCurve({ series, prevalence, meta, source = 'heldout' }: { seri
               <Line key={s.id} data={s.points.map(([x, y]) => ({ x, y }))} dataKey="y" name={`${s.label}${s.auc != null ? ` (AUC ${formatNumber(s.auc, 3)})` : ''}`} stroke={s.color} dot={false} strokeWidth={2} isAnimationActive={false} type="linear" />
             ))}
             {prevalence != null && <ReferenceLine y={prevalence} stroke="var(--text-muted)" strokeDasharray="5 4" />}
-            {usable.map((s) => s.operating && <ReferenceDot key={`${s.id}-op`} x={s.operating.recall} y={s.operating.precision} r={6} fill={s.color} stroke="var(--surface)" strokeWidth={2} />)}
+            {markers.map((s) => s.operating && <ReferenceDot key={`${s.id}-op`} x={s.operating.recall} y={s.operating.precision} r={6} fill={s.color} stroke="var(--surface)" strokeWidth={2} />)}
           </LineChart>
         </ResponsiveContainer>
       </div>

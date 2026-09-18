@@ -1,28 +1,31 @@
 # Benchmark methodology
 
-## Status first: there are no benchmark numbers
+## Status first: what has and has not been measured
 
-**No engine comparison has been measured, and this repository contains no latency, throughput or
-"engine X is faster" figure.** Anything that looks like one is either a schema example in
-[`contracts.md`](contracts.md) or a UI placeholder — not a measurement.
+**A fair Flink-vs-Spark comparison has now been run on the deployed GCP stack.** The results, with the
+run ids, live in [`measured-results.md`](measured-results.md). In short: over one 500-record run that
+both engines consumed, the two engines agreed on 500/500 decisions with a maximum score difference of
+`0.000000000`, and Flink's end-to-end latency was p50 92 ms / p95 155 ms against Spark's p50 3862 ms /
+p95 5695 ms at a 1000 ms trigger.
 
-Two concrete reasons:
+Two caveats that keep the rest of this document necessary:
 
-1. `services/ops-agent/app/` is an **empty directory**. The experiment runner that
-   `POST /api/v1/experiments` is specified against does not exist, so `comparison`, `late_events` and
-   `recovery` experiments cannot run. `contracts.md` already says the intended behaviour: "only real
-   measurements; before any run the list is empty."
-2. The `spark` service sits behind a Compose profile and is not started by a default `up -d`, and
-   `GET /api/v1/health` reports Spark as `idle` with the note "Spark runs on demand for comparisons
-   (operator-launched)". A comparison requires both engines running over the same input.
-
-So every throughput and latency figure in this project is, today:
+1. `services/ops-agent/app/` is still an **empty directory**. The experiment runner that
+   `POST /api/v1/experiments` is specified against does not exist, so the run above was orchestrated by
+   hand (insert a `runs` row, then `POST /runs/{id}/start` on the generator). It is evidence, but it is
+   not yet a button in the UI, and `comparison`, `late_events` and `recovery` experiments cannot be
+   launched from the API.
+2. The comparison measures **latency at a fixed low arrival rate** (10 events/second), not throughput.
+   Sustained events/second at saturation, p99 latency, and behaviour under backpressure remain:
 
 > **`_not measured yet_`**
 
-This document therefore describes *how* a comparison must be run for its output to mean anything, so
-that when numbers do exist they can be trusted — and so that nobody publishes numbers produced any
-other way.
+Anything in this repository that looks like a performance number and is not in
+[`measured-results.md`](measured-results.md) is a schema example in [`contracts.md`](contracts.md) or a
+UI placeholder — not a measurement.
+
+The rest of this document describes *how* a comparison must be run for its output to mean anything, so
+that numbers can be trusted — and so that nobody publishes numbers produced any other way.
 
 ## 1. What "fair" has to mean here
 
@@ -207,4 +210,5 @@ this", never as zero.
 3. Run a warm-up, then repeats, and record every item in section 3 alongside the result.
 4. Store the output as evidence with `provenance: "measured"` (`GET /evidence` distinguishes
    `measured` / `prerecorded` / `illustrative` — use it honestly).
-5. Only then replace `_not measured yet_` anywhere in this repository.
+5. Only then replace `_not measured yet_` anywhere in this repository, and record the run id in
+   [`measured-results.md`](measured-results.md) alongside the numbers.

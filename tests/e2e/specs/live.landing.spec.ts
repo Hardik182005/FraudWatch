@@ -37,7 +37,8 @@ test.describe('FraudWatch Live landing', () => {
     const nodes = page.locator('.fw-scene-node');
     const count = await nodes.count();
     expect(count).toBeGreaterThan(1);
-    const label = (await nodes.nth(1).innerText()).trim();
+    // A node renders its label plus a status line; the detail panel is keyed on the label alone.
+    const label = (await nodes.nth(1).innerText()).trim().split(String.fromCharCode(10))[0].trim();
     await nodes.nth(1).click();
     await expect(page.getByTestId('scene-detail')).toContainText(label);
   });

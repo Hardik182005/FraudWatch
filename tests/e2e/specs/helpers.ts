@@ -13,6 +13,9 @@ const EXPECTED = [
   /EventSource/i,
   /pipeline_(sleeping|starting_vm|starting_services|restoring|failed|stopping)/i,
   /WebGL|THREE\.WebGLRenderer|Could not create a WebGL context/i,
+  // A backend that is running but does not allow this origin is the same class of condition as one
+  // that is absent: the site must still render a truthful unavailable state, not a blank page.
+  /blocked by CORS policy|Access to fetch at /i,
 ];
 
 export function collectErrors(page: Page): string[] {
