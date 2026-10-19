@@ -2,7 +2,7 @@
   "name": "fraudwatch",
   "version": "1.0.0",
   "private": true,
-  "description": "FraudWatch frontend monorepo: FraudWatch Live, FraudWatch Lab, shared UI and API contracts",
+  "description": "FraudWatch frontend monorepo: one website (CA1 + CA2), shared UI and API contracts",
   "type": "module",
   "workspaces": [
     "packages/contracts",
@@ -13,14 +13,10 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev:live": "vite --config apps/live/vite.config.ts",
-    "dev:lab": "vite --config apps/lab/vite.config.ts",
-    "build": "npm run build:live && npm run build:lab",
-    "build:live": "vite build --config apps/live/vite.config.ts",
-    "build:lab": "vite build --config apps/lab/vite.config.ts",
-    "preview:live": "vite preview --config apps/live/vite.config.ts --port 4173 --strictPort",
-    "preview:lab": "vite preview --config apps/lab/vite.config.ts --port 4174 --strictPort",
-    "typecheck": "tsc -p packages/contracts/tsconfig.json && tsc -p packages/ui/tsconfig.json && tsc -p apps/live/tsconfig.json && tsc -p apps/lab/tsconfig.json && tsc -p tests/e2e/tsconfig.json",
+    "dev": "vite --config apps/web/vite.config.ts",
+    "build": "vite build --config apps/web/vite.config.ts",
+    "preview": "vite preview --config apps/web/vite.config.ts --port 4173 --strictPort",
+    "typecheck": "tsc -p packages/contracts/tsconfig.json && tsc -p packages/ui/tsconfig.json && tsc -p apps/web/tsconfig.json && tsc -p tests/e2e/tsconfig.json",
     "test": "vitest run --root packages/contracts && vitest run --root packages/ui",
     "test:e2e": "playwright test -c tests/e2e/playwright.config.ts",
     "test:e2e:install": "playwright install chromium"

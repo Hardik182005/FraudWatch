@@ -7,28 +7,36 @@ import {
   formatInt, formatMs, formatNumber, formatPct, formatTimestamp,
   type CurveSeries, type EvalMeta, type ModelMetricRow,
 } from '@fraudwatch/ui';
-import { ArrowRight, BookOpen, Download, ExternalLink, FlaskConical, LockKeyhole, RefreshCw } from 'lucide-react';
-import { useState } from 'react';
+import { Activity, ArrowRight, BookOpen, Download, FlaskConical, LockKeyhole, RefreshCw } from 'lucide-react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from './api';
+import { api } from '../api';
 import { useLab } from './lab';
+import { MeasuredComparison, MeasuredRobustness } from './measured';
+import { BeyondSyllabus } from './beyond';
+import { EngineScene } from './scene';
+import { useModelEvidence } from './snapshot';
 
-function PageHead({ eyebrow, title, children, actions }: { eyebrow: string; title: string; children: React.ReactNode; actions?: React.ReactNode }) {
+function PageHead({ eyebrow, title, children, actions }: { eyebrow: string; title: string; children: ReactNode; actions?: ReactNode }) {
   return <div className="fw-page-head"><div><div className="fw-eyebrow">{eyebrow}</div><h1>{title}</h1><p>{children}</p></div>{actions && <div className="fw-row">{actions}</div>}</div>;
 }
 
+function SnapshotBanner({ waking }: { waking: boolean }) {
+  return <Banner tone="info"><span data-testid="model-snapshot"><strong>Showing the bundled model artifact.</strong> {waking ? 'The cloud backend is waking up, ' : 'The API is not answering, '}so these figures come from the same files the API serves (<code>metadata.json</code>, <code>stream_model_results.json</code>). They are identical, and the page switches to the live API automatically.</span></Banner>;
+}
+
 export function HomePage() {
-  const { view, liveLink, health } = useLab();
-  const model = useApi(() => api.getModel(), []);
+  const { view, health } = useLab();
+  const evidence = useModelEvidence();
   return <div className="fw-stack fw-lab-page">
-    <PageHead eyebrow="Interactive academic companion" title="Learn the system through its evidence">
-      CA1 builds the fraud model and shared detection policy. CA2 runs the same event contract through Apache Flink and Spark Structured Streaming.
+    <PageHead eyebrow="Study index" title="Learn the system through its evidence">
+      CA1 builds the fraud model and shared detection policy. CA2 runs the same event contract through Apache Flink and Spark Structured Streaming. Both live on this one site and share your demo session.
     </PageHead>
-    {view?.run ? <Banner tone="info"><strong>Run selected from Live.</strong> The experiment views below query run <code>{view.run}</code> from the shared backend.</Banner> :
-      <Banner tone="neutral">Start a session in FraudWatch Live, then choose <strong>Open in Lab</strong> to carry its session and run here.</Banner>}
+    {view?.run ? <Banner tone="info"><strong>Your demo run is in context.</strong> The experiment views query run <code>{view.run}</code> from the shared backend.</Banner> :
+      <Banner tone="neutral">Start a demo in the <Link to="/console">console</Link> and its run is inspected here automatically.</Banner>}
     <div className="fw-grid fw-grid-3">
-      <Stat label="Deployed model" value={model.data?.model_version ?? '—'} note={model.status === 'error' ? 'API unavailable' : 'Loaded from model metadata'} />
-      <Stat label="Live run context" value={view?.run ? 'Selected' : 'None'} note={view?.run ?? 'Waiting for a shared run'} />
+      <Stat label="Deployed model" value={evidence.data?.model.model_version ?? '—'} note={evidence.source === 'snapshot' ? 'From the bundled artifact' : evidence.source === 'error' ? 'Unavailable' : 'Loaded from model metadata'} />
+      <Stat label="Run context" value={view?.run ? 'Selected' : 'None'} note={view?.run ?? 'Start a demo in the console'} />
       <Stat label="Runtime health" value={health.data?.overall ?? 'Unknown'} note={health.data ? `${health.data.components.length} components reported` : 'No runtime snapshot'} />
     </div>
     <div className="fw-lab-map">
@@ -36,9 +44,10 @@ export function HomePage() {
       <StudyTile to="/ca2" step="02" title="CA2 · Stream processing" text="Event time, watermarks, keyed state, checkpoints, late events and the Spark micro-batch comparison." />
       <StudyTile to="/experiments" step="03" title="Experiment lab" text="Inspect real run parity and late records. Operator access is required to start bounded benchmarks." />
       <StudyTile to="/architecture" step="04" title="Architecture explorer" text="Inspect the shared Kafka-to-websites pipeline in accessible 2D or interactive 3D." />
+      <StudyTile to="/system" step="05" title="System intelligence" text="Topology, logs, per-event traces, data quality, operations and the cloud wake lifecycle." />
       <StudyTile to="/evidence" step="06" title="Evidence & status" text="Machine-readable model, experiment and test evidence, with honest provenance labels." />
     </div>
-    {liveLink('/console') && <Card title="Continue in FraudWatch Live" description="The link preserves the selected session and run."><a href={liveLink('/console')!} className={buttonClass('primary')}>Open operational dashboard <ExternalLink size={16} /></a></Card>}
+    <Card title="Operate the pipeline" description="Same session, same run: the console and the study pages share one context."><Link to="/console" className={buttonClass('primary')}>Open the operational console <Activity size={16} /></Link></Card>
   </div>;
 }
 
@@ -47,17 +56,17 @@ function StudyTile({ to, step, title, text }: { to: string; step: string; title:
 }
 
 export function Ca1Page() {
-  const model = useApi(() => api.getModel(), []);
-  const results = useApi(() => api.getModelResults(), []);
-  const stream = results.data?.stream;
+  const ev = useModelEvidence();
+  const model = ev.data?.model;
+  const stream = ev.data?.results.stream;
   const report = stream ? (stream.test?.[stream.selected] ?? Object.values(stream.test ?? {})[0]) : undefined;
   return <div className="fw-stack fw-lab-page">
-    <PageHead eyebrow="Continuous Assessment 1" title="Fraud detection with reproducible ML">The dashboard uses a versioned LightGBM score, separate deterministic rules, and an explicit review policy. A score is not presented as a calibrated probability.</PageHead>
-    {model.status === 'loading' || results.status === 'loading' ? <LoadingSkeleton lines={5} /> : null}
-    {model.status === 'error' ? <ErrorState error={model.error} onRetry={model.refetch} /> : null}
-    {results.status === 'error' ? <ErrorState error={results.error} title="Evaluation results unavailable" onRetry={results.refetch} /> : null}
-    {model.data && <Dataset model={model.data} />}
-    {stream && report && <Evaluation results={stream} report={report} model={model.data ?? null} unseen={stream.test_unseen_accounts ?? null} />}
+    <PageHead eyebrow="Continuous Assessment 1" title="Fraud detection with reproducible ML" actions={<><Link className={buttonClass('primary')} to="/console">Watch it score live <ArrowRight size={16} /></Link><Link className={buttonClass('secondary')} to="/alerts">Review alerts</Link></>}>The console uses a versioned LightGBM score, separate deterministic rules, and an explicit review policy. A score is not presented as a calibrated probability.</PageHead>
+    {ev.source === 'loading' ? <LoadingSkeleton lines={5} /> : null}
+    {ev.source === 'snapshot' ? <SnapshotBanner waking={ev.waking} /> : null}
+    {ev.source === 'error' ? <ErrorState error={ev.error} title="Evaluation results unavailable" onRetry={ev.refetch} /> : null}
+    {model && <Dataset model={model} />}
+    {stream && report && <Evaluation results={stream} report={report} model={model ?? null} unseen={stream.test_unseen_accounts ?? null} />}
     <div className="fw-grid fw-grid-3">
       <Concept n="1" title="Model evidence">TreeSHAP contributions explain which model inputs moved this model score. They are associations, not causes.</Concept>
       <Concept n="2" title="Rule evidence">Burst, profile-deviation and card-testing rules inspect explicit state. Their reasons stay separate from model attribution.</Concept>
@@ -153,13 +162,18 @@ function Evaluation({ results, report, model, unseen }: { results: NonNullable<M
   </>;
 }
 
-function Concept({ n, title, children }: { n: string; title: string; children: React.ReactNode }) {
+function Concept({ n, title, children }: { n: string; title: string; children: ReactNode }) {
   return <Card headingLevel={3}><div className="fw-concept-number">{n}</div><h3>{title}</h3><p className="fw-muted">{children}</p></Card>;
 }
 
 export function Ca2Page() {
+  const { health, view } = useLab();
   return <div className="fw-stack fw-lab-page">
-    <PageHead eyebrow="Continuous Assessment 2" title="True stream processing and a fair micro-batch comparison">The same Kafka events, feature contract, scoring artifact and persistence rules feed Flink and the pinned Spark Structured Streaming job.</PageHead>
+    <PageHead eyebrow="Continuous Assessment 2" title="True stream processing and a fair micro-batch comparison" actions={<><Link className={buttonClass('primary')} to="/experiments">Compare my run <ArrowRight size={16} /></Link><Link className={buttonClass('secondary')} to="/pipeline">Live pipeline</Link></>}>The same Kafka events, feature contract, scoring artifact and persistence rules feed Flink and the pinned Spark Structured Streaming job.</PageHead>
+    <EngineScene health={health.data} run={view?.run ?? null} />
+    <MeasuredComparison />
+    <MeasuredRobustness />
+    <BeyondSyllabus />
     <div className="fw-grid fw-grid-2">
       <Card title="Apache Flink" description="Long-running event-at-a-time pipeline"><ul className="fw-check-list"><li>Bounded out-of-orderness watermarks</li><li>Keyed per-account transaction state</li><li>Event-time windows and visible late-event output</li><li>Periodic checkpoints and restart strategy</li><li>Stable event IDs at the idempotent sink</li></ul></Card>
       <Card title="Spark Structured Streaming" description="Explicit micro-batch configuration"><ul className="fw-check-list"><li>Independent Kafka consumer group</li><li>Configured trigger interval</li><li>Equivalent state feature semantics</li><li>Separate result topic and checkpoint directory</li><li>Operator-triggered to reduce idle cost</li></ul></Card>
@@ -170,27 +184,27 @@ export function Ca2Page() {
       <Card title="Comparison boundary"><p>End-to-end delay starts at the documented ingestion timestamp and ends when the result becomes durable. Browser refresh time is excluded. Both engines must process matching IDs before latency is interpreted.</p></Card>
     </div>
     <Card title="Engine paths, side by side" description="Static figure of the two consumption paths; export it for a report"><ArchitectureFigures only={['engine-paths']} /></Card>
-    <Card title="Inspect actual behavior" actions={<Link className={buttonClass('primary')} to="/experiments">Open experiment lab <ArrowRight size={16} /></Link>}><p className="fw-muted">A selected Live run enables parity, latency and late-event inspection. Until an experiment completes, charts stay empty instead of displaying invented results.</p></Card>
+    <Card title="Inspect actual behavior" actions={<Link className={buttonClass('primary')} to="/experiments">Open experiment lab <ArrowRight size={16} /></Link>}><p className="fw-muted">The figures above are prerecorded runs. Your own demo run gets the same parity, latency and late-event inspection in the experiment lab; until it has data, those charts stay empty instead of displaying invented results.</p></Card>
   </div>;
 }
 
-function FlowStep({ n, title, children }: { n: string; title: string; children: React.ReactNode }) { return <div><span>{n}</span><h3>{title}</h3><p>{children}</p></div>; }
+function FlowStep({ n, title, children }: { n: string; title: string; children: ReactNode }) { return <div><span>{n}</span><h3>{title}</h3><p>{children}</p></div>; }
 
 export function ExperimentsPage() {
-  const { view, operator, login, logout, liveLink } = useLab();
+  const { view, operator, login, logout } = useLab();
   const experiments = useApi(() => api.listExperiments(), [operator?.token], { refreshMs: 10000 });
-  const comparison = useApi(() => api.getComparison(view?.run ?? ''), [view?.run], { enabled: !!view?.run });
-  const late = useApi(() => api.getLate(view?.run ?? ''), [view?.run], { enabled: !!view?.run });
+  const comparison = useApi(() => api.getComparison(view?.run ?? ''), [view?.run], { enabled: !!view?.run, refreshMs: 15000 });
+  const late = useApi(() => api.getLate(view?.run ?? ''), [view?.run], { enabled: !!view?.run, refreshMs: 15000 });
   const [passphrase, setPassphrase] = useState('');
   const [loginError, setLoginError] = useState<unknown>(null);
   const [creating, setCreating] = useState<ExperimentKind | null>(null);
   const [createError, setCreateError] = useState<unknown>(null);
-  const submitLogin = async (e: React.FormEvent) => { e.preventDefault(); setLoginError(null); try { await login(passphrase); setPassphrase(''); } catch (err) { setLoginError(err); } };
+  const submitLogin = async (e: FormEvent) => { e.preventDefault(); setLoginError(null); try { await login(passphrase); setPassphrase(''); } catch (err) { setLoginError(err); } };
   const start = async (kind: ExperimentKind) => { setCreating(kind); setCreateError(null); try { await api.createExperiment(kind, { profile: 'demo', run_id: view?.run ?? null, repeats: kind === 'comparison' ? 3 : 1 }); experiments.refetch(); } catch (err) { setCreateError(err); } finally { setCreating(null); } };
   return <div className="fw-stack fw-lab-page">
     <PageHead eyebrow="Measured evidence" title="Experiment lab">Inspect a shared run without operator access. Starting bounded benchmark, late-event or recovery work requires the operator role.</PageHead>
-    {!view?.run ? <EmptyState title="No run selected" icon={<FlaskConical size={18} />}>Open a run from FraudWatch Live to compare engines and inspect late records.{liveLink('/console') && <div className="fw-space-top"><a className={buttonClass('primary')} href={liveLink('/console')!}>Open Live</a></div>}</EmptyState> : <>
-      <Banner tone="info">Inspecting run <code>{view.run}</code>. Values below come from the shared durable results.</Banner>
+    {!view?.run ? <EmptyState title="No run selected" icon={<FlaskConical size={18} />}>Start a demo in the console and its run appears here, ready to compare engines and inspect late records. Prerecorded comparisons are on the <Link to="/ca2">CA2 page</Link>.<div className="fw-space-top"><Link className={buttonClass('primary')} to="/console">Open the console</Link></div></EmptyState> : <>
+      <Banner tone="info">Inspecting run <code>{view.run}</code>. Values below come from the shared durable results and refresh every 15 seconds.</Banner>
       <ComparisonView data={comparison.data} error={comparison.error} loading={comparison.status === 'loading'} onRetry={comparison.refetch} />
       <LateView data={late.data} error={late.error} loading={late.status === 'loading'} onRetry={late.refetch} />
     </>}
@@ -220,7 +234,7 @@ function ExperimentList({ data, error, loading, onRetry }: { data?: Experiment[]
 export function ArchitecturePage() {
   const { health } = useLab();
   const architecture = useApi(() => api.getArchitecture(), []);
-  const explanations: Record<string, string> = { generator:'Produces reproducible scenarios and applies session caps.',kafka:'Durable event log shared by independent engine consumer groups.',flink:'Primary true-stream processor with event-time state and checkpoints.',spark:'Operator-triggered Structured Streaming micro-batch comparison.',scoring:'Loads the versioned preprocessing and LightGBM artifact.',result_consumer:'Deduplicates stable record IDs and persists results.',postgres:'Server-owned sessions, runs, predictions, alerts, audits and evidence.',api:'Authenticated HTTP and resumable SSE boundary for both websites.',live:'Operational monitoring and investigation interface.',lab:'Academic concepts, experiments and measured evidence.' };
+  const explanations: Record<string, string> = { generator:'Produces reproducible scenarios and applies session caps.',kafka:'Durable event log shared by independent engine consumer groups.',flink:'Primary true-stream processor with event-time state and checkpoints.',spark:'Operator-triggered Structured Streaming micro-batch comparison.',scoring:'Loads the versioned preprocessing and LightGBM artifact.',result_consumer:'Deduplicates stable record IDs and persists results.',postgres:'Server-owned sessions, runs, predictions, alerts, audits and evidence.',api:'Authenticated HTTP and resumable SSE boundary for the website.',live:'The website: operational console, alerts and investigation.',lab:'The website: study pages, experiments and measured evidence.',web:'The website: operational console and study pages on one origin.' };
   return <div className="fw-stack fw-lab-page"><PageHead eyebrow="Shared system" title="Architecture explorer">Select any component to see its runtime status, configuration and role. The 3D scene lazy-loads; 2D is always available.</PageHead><PipelineDiagram architecture={architecture.data} health={health.data} loading={architecture.status === 'loading'} error={architecture.error} onRetry={() => { architecture.refetch(); health.refetch(); }} explain={(id) => <p className="fw-muted fw-small">{explanations[id] ?? 'Runtime component reported by the architecture API.'}</p>} /><Card title="Exportable architecture figures" description="Static, print-safe SVGs of the same system — each one can be copied or downloaded for a report"><ArchitectureFigures /></Card></div>;
 }
 
@@ -250,8 +264,9 @@ const QUESTIONS = [
 
 export function EvidencePage() {
   const evidence = useApi(() => api.listEvidence(), []);
-  const model = useApi(() => api.getModel(), []);
+  const ev = useModelEvidence();
+  const model = { data: ev.data?.model, status: ev.source, error: ev.error, refetch: ev.refetch };
   return <div className="fw-stack fw-lab-page"><PageHead eyebrow="Provenance and completion" title="Evidence & status">Downloadable evidence is generated by the model and experiment workflows. The formatted report is deferred until the teacher supplies the required template.</PageHead><Banner tone="warn"><strong>Report template pending.</strong> No final PDF is claimed or generated yet.</Banner><Card title="Deployed model record"><ObjectKeyValue data={model.data ? { model_version:model.data.model_version, model_type:model.data.model_type, score_semantics:model.data.score_semantics, feature_spec:model.data.feature_spec, trained_at:model.data.trained_at_unix ? formatTimestamp(model.data.trained_at_unix * 1000) : null, training_command:model.data.training_command } : null} />{model.status === 'error' && <ErrorState error={model.error} onRetry={model.refetch} />}</Card><Card title="Evidence index" description="Provenance is returned by the API" flush>{evidence.status === 'loading' ? <LoadingSkeleton lines={4} /> : evidence.status === 'error' ? <ErrorState error={evidence.error} onRetry={evidence.refetch} /> : !evidence.data?.length ? <EmptyState title="No evidence records yet">Complete a model or experiment workflow to populate this index.</EmptyState> : <div className="fw-table-wrap"><table className="fw-table"><thead><tr><th>Item</th><th>Kind</th><th>Provenance</th><th>Created</th><th>Download</th></tr></thead><tbody>{evidence.data.map((e) => <tr key={e.id}><td><strong>{e.title}</strong><div><code>{e.id}</code></div></td><td>{e.kind}</td><td><StatusPill tone={e.provenance === 'measured' ? 'allow' : e.provenance === 'prerecorded' ? 'review' : 'neutral'}>{e.provenance}</StatusPill></td><td>{formatTimestamp(e.created_at)}</td><td>{e.url ? <a href={e.url} className={buttonClass('secondary','sm')} download><Download size={15}/>Download</a> : '—'}</td></tr>)}</tbody></table></div>}</Card><Card title="Method questions" description="Short, defensible answers to the concepts this project is assessed on."><div>{QUESTIONS.map(([q,a], i) => <Disclosure key={q} summary={`${i+1}. ${q}`}><p>{a}</p></Disclosure>)}</div></Card></div>;
 }
 
-export function NotFoundPage() { return <EmptyState title="Page not found" icon={<BookOpen size={18} />} action={<Link to="/" className={buttonClass('primary')}>Return to study lab</Link>}>The requested Lab route does not exist.</EmptyState>; }
+export function NotFoundPage() { return <EmptyState title="Page not found" icon={<BookOpen size={18} />} action={<Link to="/" className={buttonClass('primary')}>Return home</Link>}>The requested page does not exist.</EmptyState>; }

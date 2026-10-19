@@ -41,11 +41,23 @@ export interface LifecycleView {
 }
 
 /**
- * Cloud wake orchestration. Calls ensure-ready once per page load when a controller URL is configured,
- * a session exists and the document is visible; then polls status until ready or failed. Without a
- * controller (local development) the phase is `local` and nothing is called.
+ * Cloud wake orchestration. Calls ensure-ready once per page load (and per retry) when a controller URL is
+ * configured and the document is visible, with or without a demo session: a first-time visitor has no
+ * session yet, and every API call is a 503 until the VM is up. Then polls status until ready or failed.
+ * Without a controller (local development) the phase is `local` and nothing is called.
+ * `onReady` fires when the phase moves into `ready` from a non-ready state (a wake just finished).
  */
-export function useLifecycle({ controlUrl, sessionId, pollMs = 3000 }: { controlUrl: string | null | undefined; sessionId: string | null | undefined; pollMs?: number }): LifecycleView {
+export function useLifecycle({
+  controlUrl,
+  sessionId = null,
+  pollMs = 3000,
+  onReady,
+}: {
+  controlUrl: string | null | undefined;
+  sessionId?: string | null;
+  pollMs?: number;
+  onReady?: () => void;
+}): LifecycleView {
   const client = useMemo(() => (controlUrl ? new LifecycleClient(controlUrl) : null), [controlUrl]);
   const [status, setStatus] = useState<LifecycleStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,15 +71,17 @@ export function useLifecycle({ controlUrl, sessionId, pollMs = 3000 }: { control
     setPhase(toPhase(s.state));
   }, []);
 
-  // ensure-ready: once per (session, attempt), only while visible.
+  // ensure-ready: once per attempt, only while visible. The session id is informational for the controller.
+  const sessionRef = useRef(sessionId);
+  sessionRef.current = sessionId;
   useEffect(() => {
-    if (!client || !sessionId) return;
-    const key = `${sessionId}:${attempt}`;
+    if (!client) return;
+    const key = String(attempt);
     const run = () => {
       if (document.visibilityState !== 'visible' || ensured.current === key) return;
       ensured.current = key;
       client
-        .ensureReady(sessionId)
+        .ensureReady(sessionRef.current ?? null)
         .then((s) => s && apply(s))
         .catch((e: unknown) => {
           setError(e instanceof Error ? e.message : 'Could not reach the wake controller');
@@ -77,7 +91,17 @@ export function useLifecycle({ controlUrl, sessionId, pollMs = 3000 }: { control
     run();
     document.addEventListener('visibilitychange', run);
     return () => document.removeEventListener('visibilitychange', run);
-  }, [client, sessionId, attempt, apply]);
+  }, [client, attempt, apply]);
+
+  // Announce a completed wake once per transition so data views can reload.
+  const prevPhase = useRef<WakePhase>(phase);
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
+  useEffect(() => {
+    const prev = prevPhase.current;
+    prevPhase.current = phase;
+    if (phase === 'ready' && prev !== 'ready' && prev !== 'checking' && prev !== 'local') onReadyRef.current?.();
+  }, [phase]);
 
   const refresh = useCallback(() => {
     if (!client) return;
@@ -110,15 +134,17 @@ export function useLifecycle({ controlUrl, sessionId, pollMs = 3000 }: { control
 
 /** Sends at most one activity ping per `throttleMs` after real pointer/keyboard interaction. */
 export function useActivityPings(client: LifecycleClient | null, sessionId: string | null | undefined, throttleMs = 60000) {
+  const sessionRef = useRef(sessionId ?? null);
+  sessionRef.current = sessionId ?? null;
   useEffect(() => {
-    if (!client || !sessionId) return;
+    if (!client) return;
     let last = 0;
     const on = (e: Event) => {
       if (!e.isTrusted || document.visibilityState !== 'visible') return;
       const now = Date.now();
       if (now - last < throttleMs) return;
       last = now;
-      client.activity(sessionId, e.type === 'keydown' ? 'keyboard' : 'pointer').catch(() => undefined);
+      client.activity(sessionRef.current, e.type === 'keydown' ? 'keyboard' : 'pointer').catch(() => undefined);
     };
     window.addEventListener('pointerdown', on, { passive: true });
     window.addEventListener('keydown', on);
@@ -126,7 +152,7 @@ export function useActivityPings(client: LifecycleClient | null, sessionId: stri
       window.removeEventListener('pointerdown', on);
       window.removeEventListener('keydown', on);
     };
-  }, [client, sessionId, throttleMs]);
+  }, [client, throttleMs]);
 }
 
 /** Wake progress banner. Indeterminate progress only; never a fake percentage. */

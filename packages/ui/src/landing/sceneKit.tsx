@@ -195,7 +195,7 @@ export function Block({ id, label, sub, position, size = [1.7, 0.8, 1.4], status
       <Html position={[0, h + 0.55, 0]} center zIndexRange={[20, 0]}>
         <span className="fw-scene-label" data-selected={selected || undefined} aria-hidden="true">
           <strong>{label}</strong>
-          {sub && <em>{sub}</em>}
+          {sub && <em>{' '}{sub}</em>}
           {badge && <b>{badge}</b>}
         </span>
       </Html>

@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 
 export function NotFound() {
   return (
-    <EmptyState title="Page not found" action={<Link className="fw-btn fw-btn-secondary" to="/console">Back to overview</Link>}>
-      This address does not match any FraudWatch Live view.
+    <EmptyState title="Page not found" action={<Link className="fw-btn fw-btn-secondary" to="/">Home</Link>}>
+      This address does not match any FraudWatch page.
     </EmptyState>
   );
 }

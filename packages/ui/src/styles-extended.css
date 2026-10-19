@@ -526,3 +526,14 @@
 .fw-figure-canvas > svg {
   min-width: 560px;
 }
+
+/* Key/value rows where each pair is wrapped in a <div> (operations cards) */
+.fw-kv-rows { margin: 0; display: flex; flex-direction: column; font-size: 0.9rem; }
+.fw-kv-rows > div {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
+  gap: 2px 12px; padding: 7px 0; border-bottom: 1px solid var(--border);
+}
+.fw-kv-rows > div:last-child { border-bottom: 0; }
+.fw-kv-rows dt { color: var(--text-muted); font-weight: 500; flex: 0 0 auto; }
+.fw-kv-rows dd { margin: 0; min-width: 0; text-align: right; overflow-wrap: break-word; word-break: normal; font-variant-numeric: tabular-nums; }
+.fw-kv-rows dd code { white-space: nowrap; }

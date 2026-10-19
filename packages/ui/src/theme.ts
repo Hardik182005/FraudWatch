@@ -51,6 +51,7 @@ function safeStorage(): StorageLike | null {
 }
 
 const DARK_QUERY = '(prefers-color-scheme: dark)';
+const THEME_SYNC_EVENT = 'fraudwatch:theme';
 
 /** Call once before first render to avoid a flash of the wrong theme. */
 export function initTheme(): void {
@@ -72,6 +73,13 @@ export function useTheme() {
     return () => mq.removeEventListener('change', onChange);
   }, []);
 
+  // Keep every useTheme() instance (header toggle, command palette) in sync.
+  useEffect(() => {
+    const onSync = (e: Event) => setPref((e as CustomEvent<ThemePreference>).detail);
+    window.addEventListener(THEME_SYNC_EVENT, onSync);
+    return () => window.removeEventListener(THEME_SYNC_EVENT, onSync);
+  }, []);
+
   const resolved = resolveTheme(preference, systemDark);
 
   useEffect(() => {
@@ -81,6 +89,7 @@ export function useTheme() {
   const setPreference = useCallback((p: ThemePreference) => {
     writePreference(safeStorage(), p);
     setPref(p);
+    window.dispatchEvent(new CustomEvent(THEME_SYNC_EVENT, { detail: p }));
   }, []);
 
   return { preference, resolved, setPreference };

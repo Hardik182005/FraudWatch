@@ -3,12 +3,12 @@ import { collectErrors, expectNoHorizontalOverflow, expectPageShell } from './he
 
 const ROUTES = ['/study', '/ca1', '/ca2', '/experiments', '/architecture', '/evidence'];
 
-test.describe('FraudWatch Lab pages', () => {
+test.describe('FraudWatch study pages', () => {
   for (const path of ROUTES) {
     test(`${path} renders content`, async ({ page }) => {
       const errors = collectErrors(page);
       await page.goto(path);
-      await expectPageShell(page, 'Lab');
+      await expectPageShell(page);
       const main = await page.locator('main, [role="main"]').first().innerText();
       expect(main.trim().length, `${path} rendered an empty main region`).toBeGreaterThan(40);
       await expectNoHorizontalOverflow(page);

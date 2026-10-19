@@ -14,11 +14,11 @@ export function ScoreScale({ score, thresholds }: { score: number | null; thresh
         role="img"
         aria-label={`Score ${formatScore(score)}; review threshold ${formatScore(thresholds.review)}; alert threshold ${formatScore(thresholds.alert)}`}
       >
-        <div className="fw-score-marker" style={{ left: pos(thresholds.review), background: 'var(--review)' }}>
+        <div className="fw-score-marker" data-side="before" style={{ left: pos(thresholds.review), background: 'var(--review)' }}>
           <span>review ≥ {formatScore(thresholds.review)}</span>
         </div>
-        <div className="fw-score-marker" style={{ left: pos(thresholds.alert), background: 'var(--alert)' }}>
-          <span style={{ top: -22 }}>alert ≥ {formatScore(thresholds.alert)}</span>
+        <div className="fw-score-marker" data-side="after" style={{ left: pos(thresholds.alert), background: 'var(--alert)' }}>
+          <span>alert ≥ {formatScore(thresholds.alert)}</span>
         </div>
         <div className="fw-score-dot" style={{ left: pos(score) }}>
           <span>{formatScore(score)}</span>

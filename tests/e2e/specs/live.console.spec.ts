@@ -8,12 +8,12 @@ const ROUTES: Array<{ path: string; title: RegExp }> = [
   { path: '/pipeline', title: /Pipeline/i },
 ];
 
-test.describe('FraudWatch Live console', () => {
+test.describe('FraudWatch console', () => {
   for (const route of ROUTES) {
     test(`${route.path} renders with the app shell and sets its title`, async ({ page }) => {
       const errors = collectErrors(page);
       await page.goto(route.path);
-      await expectPageShell(page, 'Live');
+      await expectPageShell(page);
       await expect(page).toHaveTitle(route.title);
       await expectNoHorizontalOverflow(page);
       expect(errors, `unexpected console errors on ${route.path}:\n${errors.join('\n')}`).toEqual([]);

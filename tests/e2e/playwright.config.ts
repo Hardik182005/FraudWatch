@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Browser checks for both sites. The suite runs against the production Vite build served by
+ * Browser checks for the website (CA1 + CA2 on one origin). The suite runs against the production Vite build served by
  * `vite preview`, so it exercises the same bundle that is deployed to Cloud Run.
  *
  * The backend is optional: every spec here must pass whether or not the pipeline API is
@@ -9,8 +9,7 @@ import { defineConfig, devices } from '@playwright/test';
  * while the VM is asleep. Specs that need real data are tagged @backend and are skipped
  * automatically when FRAUDWATCH_E2E_API is not set.
  */
-const LIVE_PORT = Number(process.env.FRAUDWATCH_E2E_LIVE_PORT ?? 4173);
-const LAB_PORT = Number(process.env.FRAUDWATCH_E2E_LAB_PORT ?? 4174);
+const PORT = Number(process.env.FRAUDWATCH_E2E_PORT ?? 4173);
 
 export default defineConfig({
   testDir: './specs',
@@ -28,38 +27,24 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'live',
-      testMatch: /live\..*\.spec\.ts/,
+      name: 'web',
+      testMatch: /(live|lab|site)\..*\.spec\.ts/,
       // The responsive spec asserts phone-only behaviour (the 2D scene under 640px), so it belongs
       // to the mobile project alone; running it at 1280px asserted something that is not true there.
       testIgnore: /live\.responsive\.spec\.ts/,
-      use: { ...devices['Desktop Chrome'], baseURL: `http://127.0.0.1:${LIVE_PORT}` },
-    },
-    {
-      name: 'lab',
-      testMatch: /lab\..*\.spec\.ts/,
-      use: { ...devices['Desktop Chrome'], baseURL: `http://127.0.0.1:${LAB_PORT}` },
+      use: { ...devices['Desktop Chrome'], baseURL: `http://127.0.0.1:${PORT}` },
     },
     {
       name: 'mobile-live',
       testMatch: /live\.responsive\.spec\.ts/,
-      use: { ...devices['Pixel 7'], baseURL: `http://127.0.0.1:${LIVE_PORT}` },
+      use: { ...devices['Pixel 7'], baseURL: `http://127.0.0.1:${PORT}` },
     },
   ],
-  webServer: [
-    {
-      command: `npm run preview:live -- --port ${LIVE_PORT} --host 127.0.0.1`,
-      url: `http://127.0.0.1:${LIVE_PORT}/`,
-      cwd: '../..',
-      reuseExistingServer: !process.env.CI,
-      timeout: 120_000,
-    },
-    {
-      command: `npm run preview:lab -- --port ${LAB_PORT} --host 127.0.0.1`,
-      url: `http://127.0.0.1:${LAB_PORT}/`,
-      cwd: '../..',
-      reuseExistingServer: !process.env.CI,
-      timeout: 120_000,
-    },
-  ],
+  webServer: {
+    command: `npm run preview -- --port ${PORT} --host 127.0.0.1`,
+    url: `http://127.0.0.1:${PORT}/`,
+    cwd: '../..',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+  },
 });

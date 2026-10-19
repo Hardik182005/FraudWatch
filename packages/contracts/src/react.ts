@@ -8,6 +8,13 @@ export type QueryState<T> =
   | { status: 'success'; data: T; error: null }
   | { status: 'error'; data: T | undefined; error: unknown };
 
+/** Window event fired when the cloud backend has just become ready (after a wake). Every useApi refetches. */
+export const BACKEND_READY_EVENT = 'fraudwatch:backend-ready';
+
+export function notifyBackendReady(): void {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(BACKEND_READY_EVENT));
+}
+
 export interface UseApiOptions {
   enabled?: boolean;
   /** Poll interval in ms (keeps last good data while refetching). */
@@ -54,6 +61,14 @@ export function useApi<T>(fetcher: (signal: AbortSignal) => Promise<T>, deps: un
     lastDepsKey.current = depsKey;
     dataRef.current = undefined;
   }
+
+  // A wake that completes while this view is open reloads it, instead of leaving a stale "waking" error.
+  useEffect(() => {
+    if (!enabled || typeof window === 'undefined') return;
+    const on = () => setTick((t) => t + 1);
+    window.addEventListener(BACKEND_READY_EVENT, on);
+    return () => window.removeEventListener(BACKEND_READY_EVENT, on);
+  }, [enabled]);
 
   useEffect(() => {
     if (!enabled || !refreshMs) return;

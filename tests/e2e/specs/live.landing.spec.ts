@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { collectErrors, expectNoHorizontalOverflow, expectPageShell, expectSceneRendered } from './helpers';
 
-test.describe('FraudWatch Live landing', () => {
+test.describe('FraudWatch landing', () => {
   test('renders the hero, the 3D/2D scene and no unexpected console errors', async ({ page }) => {
     const errors = collectErrors(page);
     await page.goto('/');
-    await expectPageShell(page, 'Live');
+    await expectPageShell(page);
     await expectSceneRendered(page);
     await expectNoHorizontalOverflow(page);
     expect(errors, `unexpected console errors:\n${errors.join('\n')}`).toEqual([]);

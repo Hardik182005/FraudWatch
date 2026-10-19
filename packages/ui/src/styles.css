@@ -1328,6 +1328,8 @@ input[type='radio'] {
   white-space: nowrap;
   color: var(--text-muted);
 }
+.fw-score-marker[data-side='before'] span { transform: translateX(calc(-100% + 1px)); padding-right: 6px; }
+.fw-score-marker[data-side='after'] span { transform: none; padding-left: 6px; }
 .fw-score-dot {
   position: absolute;
   top: 50%;

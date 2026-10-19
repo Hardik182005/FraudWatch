@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Builds both Vite apps locally and deploys each as a static nginx service on Cloud Run (min instances 0).
+# Builds the one FraudWatch website (CA1 + CA2) and deploys the same bundle to both Cloud Run services,
+# fraudwatch-live and fraudwatch-lab, so both existing URLs (and the controller's allowed origins) keep working.
+# Static nginx, min instances 0.
 # The browser reaches the API through the controller's /api/v1 proxy, which wakes and fronts the private VM.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -17,7 +19,7 @@ LAB=$(run_url fraudwatch-lab)
 for app in live lab; do
   ctx="$(mktemp -d)"
   cp web/Dockerfile web/nginx.conf web/40-fraudwatch-config.sh "$ctx/"
-  cp -r "$ROOT/apps/$app/dist" "$ctx/dist"
+  cp -r "$ROOT/apps/web/dist" "$ctx/dist"
   rm -f "$ctx/dist/config.js"
   G run deploy "fraudwatch-$app" --source="$ctx" --region="$GCP_REGION" --allow-unauthenticated \
     --min-instances=0 --max-instances=2 --cpu=1 --memory=256Mi --concurrency=200 \

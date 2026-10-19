@@ -1,10 +1,11 @@
-import { ApiError, type AppConfig, type Engine, type Health, type Session, type StreamEventMap, type StreamEventType } from '@fraudwatch/contracts';
-import { useApi, useEventStream, type QueryState } from '@fraudwatch/contracts/react';
+import { ApiError, type AppConfig, type Engine, type Health, type OperatorLogin, type Session, type StreamEventMap, type StreamEventType } from '@fraudwatch/contracts';
+import { BACKEND_READY_EVENT, useApi, useEventStream, type QueryState } from '@fraudwatch/contracts/react';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { api, readStored, setAuthToken, writeStored } from './api';
+import { api, readStored, setAuthToken, setOperatorToken, writeStored } from './api';
 
 const SESSION_KEY = 'fraudwatch.live.session';
 const VIEW_KEY = 'fraudwatch.live.view';
+const OPERATOR_KEY = 'fraudwatch.operator';
 
 interface StoredSession {
   id: string;
@@ -58,6 +59,10 @@ interface SessionContextValue {
   stream: ReturnType<typeof useEventStream> & { reconnect: () => void };
   subscribe: (fn: Listener) => () => void;
   health: QueryState<Health> & { refetch: () => void };
+  /** Operator role (experiments, keep-awake). Tab-scoped; expires with the server token. */
+  operator: OperatorLogin | null;
+  login: (passphrase: string) => Promise<void>;
+  logout: () => void;
 }
 
 const Ctx = createContext<SessionContextValue | null>(null);
@@ -82,6 +87,32 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const sessionId = view?.sessionId ?? owned?.id ?? null;
   const token = view?.viewToken ?? owned?.token ?? null;
   setAuthToken(token);
+
+  const [operator, setOperator] = useState<OperatorLogin | null>(() => {
+    const stored = readStored<OperatorLogin>(OPERATOR_KEY);
+    return stored && stored.expires_at > Date.now() ? stored : null;
+  });
+  setOperatorToken(operator?.token ?? null);
+  useEffect(() => {
+    if (!operator) return;
+    const ms = operator.expires_at - Date.now();
+    const h = setTimeout(() => {
+      writeStored(OPERATOR_KEY, null);
+      setOperator(null);
+    }, Math.max(0, Math.min(ms, 2 ** 31 - 1)));
+    return () => clearTimeout(h);
+  }, [operator]);
+  const login = useCallback(async (passphrase: string) => {
+    const res = await api.operatorLogin(passphrase);
+    writeStored(OPERATOR_KEY, res);
+    setOperatorToken(res.token);
+    setOperator(res);
+  }, []);
+  const logout = useCallback(() => {
+    writeStored(OPERATOR_KEY, null);
+    setOperatorToken(null);
+    setOperator(null);
+  }, []);
 
   const [engine, setEngine] = useState<Engine>(view?.engine ?? 'flink');
   const [runOverride, setRunId] = useState<string | null>(view?.run ?? null);
@@ -151,6 +182,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     };
   }, []);
   const [streamGen, setStreamGen] = useState(0);
+  // The stream gave up while the backend slept; reopen it once the wake completes.
+  useEffect(() => {
+    const on = () => setStreamGen((g) => g + 1);
+    window.addEventListener(BACKEND_READY_EVENT, on);
+    return () => window.removeEventListener(BACKEND_READY_EVENT, on);
+  }, []);
   const [streamHealth, setStreamHealth] = useState<Health | null>(null);
   const refetchSession = sessionState.refetch;
   const stream = useEventStream({
@@ -199,6 +236,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     stream: { ...stream, reconnect: () => setStreamGen((g) => g + 1) },
     subscribe,
     health: healthValue,
+    operator,
+    login,
+    logout,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

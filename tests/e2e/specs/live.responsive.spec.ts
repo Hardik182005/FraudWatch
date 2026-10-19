@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { expectNoHorizontalOverflow, expectSceneRendered } from './helpers';
 
-test.describe('FraudWatch Live on a phone viewport', () => {
+test.describe('FraudWatch on a phone viewport', () => {
   test('the landing fits the viewport and uses the 2D scene by default', async ({ page }) => {
     await page.goto('/');
     await expectSceneRendered(page);

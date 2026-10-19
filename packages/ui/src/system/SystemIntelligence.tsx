@@ -682,7 +682,7 @@ function OperationsPanel({ client }: SystemIntelligenceProps) {
           <div className="fw-card-head"><h3>Model</h3></div>
           <div className="fw-card-body">
             {!o.model ? <VizEmpty kind="unavailable" title="Model metadata unavailable" /> : (
-              <dl className="fw-kv">
+              <dl className="fw-kv-rows">
                 {kv('Version', o.model.version ?? 'Not reported')}
                 {kv('Feature schema', o.model.feature_schema ?? 'Not reported')}
                 {kv('Checksum', o.model.checksum ? <code>{shortId(o.model.checksum, 12)}</code> : 'Not reported')}
@@ -698,7 +698,7 @@ function OperationsPanel({ client }: SystemIntelligenceProps) {
           <div className="fw-card-head"><h3>Flink</h3></div>
           <div className="fw-card-body">
             {!o.flink ? <VizEmpty kind="unavailable" title="Flink metrics unavailable" /> : (
-              <dl className="fw-kv">
+              <dl className="fw-kv-rows">
                 {kv('Job', o.flink.job_id ? <code>{shortId(o.flink.job_id, 12)}</code> : 'No job')}
                 {kv('State', o.flink.state ?? 'Not reported')}
                 {kv('Restarts', <Measure value={o.flink.restarts} />)}
@@ -714,7 +714,7 @@ function OperationsPanel({ client }: SystemIntelligenceProps) {
           <div className="fw-card-head"><h3>Spark</h3></div>
           <div className="fw-card-body">
             {!o.spark ? <VizEmpty kind="unavailable" title="Spark metrics unavailable" /> : (
-              <dl className="fw-kv">
+              <dl className="fw-kv-rows">
                 {kv('State', o.spark.state ?? 'Not reported')}
                 {kv('Query / app', o.spark.app_id ? <code>{shortId(o.spark.app_id, 14)}</code> : 'Not running')}
                 {kv('Run label', o.spark.run_label ?? '—')}

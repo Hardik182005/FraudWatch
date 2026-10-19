@@ -4,7 +4,7 @@ import { HealthDot } from './status';
 import { formatRelativeTime } from '../format';
 
 /**
- * Page chrome shared by both websites: skip link, sticky header with brand/nav/actions, main landmark, footer.
+ * Page chrome for the website: skip link, sticky header with brand/nav/actions, main landmark, footer.
  * Navigation links are passed in so the shell stays router-agnostic.
  */
 export function AppShell({
@@ -49,7 +49,7 @@ export function AppShell({
   );
 }
 
-export function BrandMark({ product }: { product: 'Live' | 'Lab' }) {
+export function BrandMark({ product }: { product?: string }) {
   return (
     <>
       <span className="fw-brand-mark" aria-hidden="true">
@@ -58,7 +58,7 @@ export function BrandMark({ product }: { product: 'Live' | 'Lab' }) {
         </svg>
       </span>
       <span>
-        FraudWatch <span className="fw-brand-sub">{product}</span>
+        FraudWatch{product ? <> <span className="fw-brand-sub">{product}</span></> : null}
       </span>
     </>
   );

@@ -4,6 +4,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from './App';
+import { CloudProvider } from './lifecycle';
 import { SessionProvider } from './session';
 
 initTheme();
@@ -13,7 +14,9 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <ToastProvider>
         <SessionProvider>
-          <App />
+          <CloudProvider>
+            <App />
+          </CloudProvider>
         </SessionProvider>
       </ToastProvider>
     </BrowserRouter>

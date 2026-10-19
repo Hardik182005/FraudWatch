@@ -29,10 +29,10 @@ export function collectErrors(page: Page): string[] {
 }
 
 /** Every page must have exactly one h1, a main landmark, and a document title naming the product. */
-export async function expectPageShell(page: Page, product: 'Live' | 'Lab') {
+export async function expectPageShell(page: Page) {
   await expect(page.locator('h1')).toHaveCount(1);
   await expect(page.locator('main, [role="main"]').first()).toBeVisible();
-  await expect(page).toHaveTitle(new RegExp(`FraudWatch ${product}`));
+  await expect(page).toHaveTitle(/FraudWatch/);
 }
 
 /** The body must never scroll horizontally, at any viewport width. */
